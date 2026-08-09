@@ -394,6 +394,37 @@ def admin_daily_tasks():
                            summary_list=summary_list)
 
 
+@tasks_bp.route('/admin/daily_task_details/<int:emp_id>/<string:task_date>')
+def admin_daily_task_details(emp_id, task_date):
+    if 'user_id' not in session or session['emp_type'] != 'admin':
+        return redirect(url_for('auth.login'))
+
+    employee = db.get_employee(emp_id)
+    if not employee:
+        flash('Employee not found.', 'error')
+        return redirect(url_for('tasks.admin_daily_tasks'))
+
+    emp_name = f"{employee[1]} {employee[2]}".strip()
+    tasks = db.get_daily_tasks_by_employee_and_date(emp_id, task_date)
+
+    # Format display date from YYYY-MM-DD to DD-MM-YYYY
+    try:
+        display_date = datetime.strptime(task_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    except ValueError:
+        display_date = task_date
+
+    # Calculate total hours
+    total_hours = sum(t[9] or 0 for t in tasks)
+
+    return render_template('tasks/admin_daily_task_details.html',
+                           tasks=tasks,
+                           employee_name=emp_name,
+                           emp_id=emp_id,
+                           task_date=task_date,
+                           display_date=display_date,
+                           total_hours=total_hours)
+
+
 @tasks_bp.route('/admin/daily_task/feedback/<int:task_id>', methods=['POST'])
 def admin_daily_task_feedback(task_id):
     if 'user_id' not in session or session['emp_type'] != 'admin':
@@ -402,6 +433,12 @@ def admin_daily_task_feedback(task_id):
     feedback = request.form.get('admin_feedback', '').strip()
     db.update_daily_task_feedback(task_id, feedback)
     flash("Feedback updated successfully!", "success")
+
+    # Redirect back to details page if emp_id and task_date are provided
+    emp_id = request.form.get('emp_id')
+    task_date = request.form.get('task_date')
+    if emp_id and task_date:
+        return redirect(url_for('tasks.admin_daily_task_details', emp_id=emp_id, task_date=task_date))
     return redirect(url_for('tasks.admin_daily_tasks'))
 
 @tasks_bp.route('/api/task_details/<int:task_id>')

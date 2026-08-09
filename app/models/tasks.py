@@ -667,6 +667,22 @@ class TaskMixin:
         conn.commit()
         conn.close()
 
+    def get_daily_tasks_by_employee_and_date(self, emp_id, task_date):
+        """Get daily tasks for a specific employee on a specific date (IST-aware)."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT dt.daily_task_id, dt.emp_id, dt.task_title, dt.task_desc, dt.project_status, dt.inserted_date, dt.admin_feedback,
+                   e.first_name, e.last_name, dt.task_hours
+             FROM tbl_daily_task dt
+             JOIN tbl_employee e ON dt.emp_id = e.emp_id
+             WHERE dt.emp_id = ? AND date(dt.inserted_date, '+5 hours', '+30 minutes') = ?
+             ORDER BY dt.inserted_date DESC
+        ''', (emp_id, task_date))
+        data = cursor.fetchall()
+        conn.close()
+        return data
+
     def get_all_daily_tasks(self):
         conn = self.get_connection()
         cursor = conn.cursor()

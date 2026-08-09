@@ -114,10 +114,10 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button type="button" onclick="toggleDetails({{ summary.emp_id }}, '{{ summary.date_raw }}', '{{ summary.employee_name|escape }}', '{{ summary.date }}')"
+                                <a href="{{ url_for('tasks.admin_daily_task_details', emp_id=summary.emp_id, task_date=summary.date_raw) }}"
                                     class="inline-flex items-center px-3 py-1.5 border border-teal-600 rounded-lg shadow-sm text-xs font-bold text-teal-600 hover:text-white hover:bg-teal-600 focus:outline-none transition">
                                     View Details
-                                </button>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -125,80 +125,8 @@
                 </table>
             </div>
 
-            <!-- View Details Section -->
-            <div id="details-section" class="mt-8 hidden border-t border-gray-100 pt-6 px-6 pb-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-info-circle mr-2 text-teal-600"></i> View Details - <span id="details-employee-title" class="text-slate-800 mr-2"></span> (<span id="details-date-title" class="text-teal-700"></span>)
-                </h3>
-                
-                {% for summary in summary_list %}
-                <div id="details-{{ summary.emp_id }}-{{ summary.date_raw }}" class="date-details-table hidden space-y-4">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                            <thead class="bg-slate-800 text-white">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Sl No.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Title</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Description</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Hours</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Feedback</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {% for task in summary.tasks %}
-                                <tr class="hover:bg-slate-50/50 transition duration-150">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ loop.index }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ task[2] }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-600 whitespace-pre-line">{{ task[3] }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">{{ task[9] }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <!-- Project Status Badge -->
-                                        {% if task[4] == 'Completed' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-100">
-                                            <span class="w-1 h-1 mr-1 rounded-full bg-green-500"></span>{{ task[4] }}
-                                        </span>
-                                        {% elif task[4] == 'Work In Progress' or task[4] == 'In Progress' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                                            <span class="w-1 h-1 mr-1 rounded-full bg-blue-500"></span>{{ task[4] }}
-                                        </span>
-                                        {% elif task[4] == 'Blocked' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 text-red-700 border border-red-100">
-                                            <span class="w-1 h-1 mr-1 rounded-full bg-red-500"></span>{{ task[4] }}
-                                        </span>
-                                        {% elif task[4] == 'On Hold' %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-700 border border-slate-200">
-                                            <span class="w-1 h-1 mr-1 rounded-full bg-slate-400"></span>{{ task[4] }}
-                                        </span>
-                                        {% else %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-yellow-50 text-yellow-700 border border-yellow-100">
-                                            <span class="w-1 h-1 mr-1 rounded-full bg-yellow-500"></span>{{ task[4] }}
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600 italic">
-                                        {{ task[6] if task[6] else 'No feedback yet' }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                        <button type="button" onclick="openFeedbackModal({{ task[0] }}, '{{ summary.employee_name|escape }}', '{{ (task[6] if task[6] else '')|escape }}')" 
-                                            class="inline-flex items-center px-3 py-1.5 border border-teal-600 rounded-lg shadow-sm text-xs font-bold text-teal-600 hover:text-white hover:bg-teal-600 focus:outline-none transition group" 
-                                            title="Add/Edit Feedback">
-                                            {% if task[6] %}
-                                                <i class="fas fa-comment-dots mr-1.5 text-teal-600 group-hover:text-white transition duration-150"></i> Edit Feedback
-                                            {% else %}
-                                                <i class="far fa-comment-dots mr-1.5 text-teal-600 group-hover:text-white transition duration-150"></i> Add Feedback
-                                            {% endif %}
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+
+
 
             <!-- No matching tasks message -->
             <div id="noTasksFilteredMessage" class="hidden text-center py-16">
@@ -222,84 +150,8 @@
     </div>
 </div>
 
-<!-- Feedback Modal (MNC Corporate Style) -->
-<div id="feedbackModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="relative bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 transform transition-all">
-        <!-- Header -->
-        <div class="bg-slate-800 px-6 py-4 border-b border-slate-700 flex justify-between items-center text-white">
-            <h3 class="text-sm font-bold uppercase tracking-wide flex items-center">
-                <i class="fas fa-comment-dots mr-2 text-teal-400"></i> Admin Feedback Form
-            </h3>
-            <button type="button" onclick="closeFeedbackModal()" class="text-slate-400 hover:text-white transition">
-                <i class="fas fa-times text-lg"></i>
-            </button>
-        </div>
-        
-        <!-- Form -->
-        <form id="feedbackForm" method="POST" class="p-6 space-y-5 bg-white">
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Employee</label>
-                <div id="modalEmployeeName" class="text-sm font-bold text-slate-800 bg-slate-100 p-2.5 rounded border border-slate-200"></div>
-            </div>
-            
-            <div>
-                <label for="modalFeedback" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Admin Feedback</label>
-                <textarea name="admin_feedback" id="modalFeedback" rows="4"
-                    class="block w-full px-3 py-2.5 rounded border border-slate-300 text-sm focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-white"
-                    placeholder="Add comments or review feedback..."></textarea>
-            </div>
-            
-            <!-- Actions -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onclick="closeFeedbackModal()"
-                    class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 rounded hover:bg-slate-50 transition uppercase">
-                    Cancel
-                </button>
-                <button type="submit"
-                    class="px-5 py-2 border border-transparent rounded shadow-sm text-xs font-bold text-white bg-teal-800 hover:bg-teal-900 focus:outline-none focus:ring-1 focus:ring-teal-600 transition uppercase tracking-wider flex items-center">
-                    <i class="fas fa-save mr-1.5"></i> Save Feedback
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
 <script>
-function openFeedbackModal(taskId, employeeName, feedbackText) {
-    const modal = document.getElementById('feedbackModal');
-    const form = document.getElementById('feedbackForm');
-    const nameField = document.getElementById('modalEmployeeName');
-    const feedbackField = document.getElementById('modalFeedback');
-    
-    form.action = `/admin/daily_task/feedback/${taskId}`;
-    nameField.innerText = employeeName;
-    feedbackField.value = feedbackText;
-    
-    modal.classList.remove('hidden');
-}
-
-function closeFeedbackModal() {
-    document.getElementById('feedbackModal').classList.add('hidden');
-}
-
-function toggleDetails(empId, dateRaw, employeeName, dateFormatted) {
-    // Hide all tables
-    const tables = document.querySelectorAll('.date-details-table');
-    tables.forEach(t => t.classList.add('hidden'));
-
-    // Show selected table
-    const targetTable = document.getElementById('details-' + empId + '-' + dateRaw);
-    if (targetTable) {
-        targetTable.classList.remove('hidden');
-        document.getElementById('details-section').classList.remove('hidden');
-        document.getElementById('details-employee-title').innerText = employeeName;
-        document.getElementById('details-date-title').innerText = dateFormatted;
-
-        // Smooth scroll to the details section
-        document.getElementById('details-section').scrollIntoView({ behavior: 'smooth' });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     const employeeFilter = document.getElementById('employeeFilter');
     const dateFilter = document.getElementById('dateFilter');
@@ -330,9 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Hide details section on filter change to keep UI clean
-            document.getElementById('details-section').classList.add('hidden');
-
             if (visibleCount === 0 && taskRows.length > 0) {
                 noTasksMessage.classList.remove('hidden');
             } else {
@@ -352,3 +201,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+
