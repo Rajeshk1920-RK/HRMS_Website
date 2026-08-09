@@ -28,6 +28,52 @@
         /* Utility for backdrop when sidebar is open on mobile */
         .backdrop { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:30; }
 
+        /* ─── Sidebar Tree-Branch Connectors ─── */
+        .sidebar-submenu {
+            position: relative;
+            padding-left: 0;
+            margin-left: 2rem;
+            margin-top: 0.25rem;
+        }
+        .sidebar-submenu::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 0;
+            bottom: 1.1rem;
+            width: 1.5px;
+            background: #e0e0e0;
+        }
+        .sidebar-submenu-item {
+            position: relative;
+            padding-left: 2rem;
+        }
+        .sidebar-submenu-item::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            width: 1.1rem;
+            height: 1.5px;
+            background: #e0e0e0;
+        }
+        /* Hide details marker */
+        .sidebar-accordion summary { list-style: none; }
+        .sidebar-accordion summary::-webkit-details-marker { display: none; }
+        .sidebar-accordion summary::marker { display: none; content: ''; }
+
+        /* Smooth sub-menu reveal */
+        .sidebar-accordion .sidebar-submenu {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.25s ease;
+        }
+        .sidebar-accordion[open] .sidebar-submenu {
+            max-height: 600px;
+            opacity: 1;
+        }
+
         /* Premium MNC-style Toast Animations */
         @keyframes toast-slide-in {
             0% { transform: translateX(120%) scale(0.9); opacity: 0; }
@@ -258,18 +304,37 @@
             </div>
 
             <!-- nav -->
-            <nav class="flex-1 overflow-y-auto py-4 space-y-2 text-sm border-r">
+            <nav class="flex-1 overflow-y-auto py-5 space-y-1 text-sm border-r px-3">
                 {% macro navlink(label, icon, endpoint) -%}
                     {% set active = request.endpoint == endpoint %}
                     <a href="{{ url_for(endpoint) }}"
-                       class="flex items-center px-5 py-2 rounded-md transition
-                              {{ 'bg-blue-100 text-green-600 font-medium' if active
-                                 else 'text-gray-700 hover:bg-gray-100' }}">
-                        <i class="{{ icon }} w-4 mr-3 text-base"></i> {{ label }}
+                       class="flex items-center px-4 py-3 rounded-xl transition-all duration-200
+                              {{ 'bg-gray-100 text-black font-bold shadow-sm' if active
+                                 else 'text-black hover:bg-gray-50' }}">
+                        <i class="{{ icon }} w-5 mr-3 text-base text-black"></i>
+                        <span>{{ label }}</span>
                     </a>
                 {%- endmacro %}
 
-                {{ navlink('Dashboard','fas fa-tachometer-alt',
+                {% macro subnavlink(label, icon, endpoint) -%}
+                    {% set active = request.endpoint == endpoint %}
+                    <div class="sidebar-submenu-item">
+                        <a href="{{ url_for(endpoint) }}"
+                           class="flex items-center px-3 py-2.5 rounded-xl transition-all duration-200
+                                  {{ 'bg-gray-100 text-black font-bold' if active
+                                     else 'text-black hover:bg-gray-50' }}">
+                            {% if icon %}
+                                <i class="{{ icon }} w-4 mr-2.5 text-sm text-black"></i>
+                            {% endif %}
+                            <span>{{ label }}</span>
+                            {% if active %}
+                                <i class="fas fa-chevron-right ml-auto text-xs text-black"></i>
+                            {% endif %}
+                        </a>
+                    </div>
+                {%- endmacro %}
+
+                {{ navlink('Dashboard','fas fa-home',
                            session.emp_type=='admin' and 'employees.admin_dashboard'
                            or 'employees.employee_dashboard') }}
 
@@ -277,143 +342,153 @@
 
                     <!-- Masters -->
                     {% set masters_active = request.endpoint in ['tasks.admin_task_statuses', 'tasks.admin_employee_statuses'] %}
-                    <details class="group" {{ 'open' if masters_active else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if masters_active
-                                           else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-user-shield w-4 mr-3"></i> Masters
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if masters_active else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if masters_active
+                                           else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-user-shield w-5 mr-3 text-base text-black"></i>
+                            <span>Masters</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Task Statuses','far fa-copy','tasks.admin_task_statuses') }}
-                            {{ navlink('Employee Statuses','fas fa-user-cog','tasks.admin_employee_statuses') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Task Statuses','far fa-copy','tasks.admin_task_statuses') }}
+                            {{ subnavlink('Employee Statuses','fas fa-user-cog','tasks.admin_employee_statuses') }}
                         </div>
                     </details>
 
                     <!-- Employee -->
-                    <details class="group" {{ 'open' if employee_active else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if employee_active
-                                           else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-users w-4 mr-3"></i> Employee
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if employee_active else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if employee_active
+                                           else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-users w-5 mr-3 text-base text-black"></i>
+                            <span>Employee</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Add Employee','fas fa-user-plus','employees.add_employee') }}
-                            {{ navlink('View Employees','fas fa-address-book','employees.view_employees') }}
-                            {{ navlink('Registration Requests','fas fa-user-clock','employees.registration_requests') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Add Employee','fas fa-user-plus','employees.add_employee') }}
+                            {{ subnavlink('View Employees','fas fa-address-book','employees.view_employees') }}
+                            {{ subnavlink('Registration Requests','fas fa-user-clock','employees.registration_requests') }}
                         </div>
                     </details>
 
                     <!-- Project -->
-                    <details class="group" {{ 'open' if project_active else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if project_active
-                                           else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-project-diagram w-4 mr-3"></i> Project
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if project_active else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if project_active
+                                           else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-project-diagram w-5 mr-3 text-base text-black"></i>
+                            <span>Project</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Add Project','fas fa-plus','projects.add_project') }}
-                            {{ navlink('View Projects','fas fa-list','projects.view_projects') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Add Project','fas fa-plus','projects.add_project') }}
+                            {{ subnavlink('View Projects','fas fa-list','projects.view_projects') }}
                         </div>
                     </details>
 
                     <!-- Leave -->
-                    <details class="group" {{ 'open' if leave_active else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if leave_active
-                                           else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-plane-departure w-4 mr-3"></i> Leave Management
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    {% set leave_active = request.endpoint in ['leave.admin_leave_types', 'leave.admin_leave_requests', 'leave.admin_leave_summary'] %}
+                    <details class="sidebar-accordion group" {{ 'open' if leave_active else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if leave_active
+                                           else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-plane-departure w-5 mr-3 text-base text-black"></i>
+                            <span>Leave Management</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Leave Types','fas fa-tags','leave.admin_leave_types') }}
-                            {{ navlink('Requests','fas fa-envelope-open','leave.admin_leave_requests') }}
-                            {{ navlink('Summary / Filter','fas fa-filter','leave.admin_leave_summary') }}
-                            {{ navlink('Holidays','fas fa-calendar-alt','leave.holidays') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Leave Types','fas fa-tags','leave.admin_leave_types') }}
+                            {{ subnavlink('Requests','fas fa-envelope-open','leave.admin_leave_requests') }}
+                            {{ subnavlink('Summary / Filter','fas fa-filter','leave.admin_leave_summary') }}
+                            {{ subnavlink('Holidays','fas fa-calendar-alt','leave.holidays') }}
                         </div>
                     </details>
 
                     <!-- Expense -->
-                    <details class="group" {{ 'open' if expense_active else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if expense_active
-                                           else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-money-bill-wave w-4 mr-3"></i> Manage Expense
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if expense_active else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if expense_active
+                                           else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-money-bill-wave w-5 mr-3 text-base text-black"></i>
+                            <span>Manage Expense</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Expense Types','fas fa-tag','expenses.admin_expense_types') }}
-                            {{ navlink('Sub Expense Types','fas fa-tags','expenses.admin_sub_expense_types') }}
-                            {{ navlink('Add Expenses','fas fa-clipboard-list','expenses.expense') }}
-                            {{ navlink('Expenses List','fas fa-list','expenses.existing_expenses') }}
-                            {{ navlink('Travel Policy','fas fa-plane-departure','expenses.travel_policy') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Expense Types','fas fa-tag','expenses.admin_expense_types') }}
+                            {{ subnavlink('Sub Expense Types','fas fa-tags','expenses.admin_sub_expense_types') }}
+                            {{ subnavlink('Add Expenses','fas fa-clipboard-list','expenses.expense') }}
+                            {{ subnavlink('Expenses List','fas fa-list','expenses.existing_expenses') }}
+                            {{ subnavlink('Travel Policy','fas fa-plane-departure','expenses.travel_policy') }}
                         </div>
                     </details>
 
                     <!-- Task -->
-                    <details class="group" {{ 'open' if task_active else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if task_active
-                                           else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-tasks w-4 mr-3"></i> Task
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if task_active else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if task_active
+                                           else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-tasks w-5 mr-3 text-base text-black"></i>
+                            <span>Task</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Add Task','fas fa-plus','tasks.add_task') }}
-                            {{ navlink('View Tasks','fas fa-list','tasks.view_tasks') }}
-                            {{ navlink('Daily Reports','fas fa-calendar-check','tasks.admin_daily_tasks') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Add Task','fas fa-plus','tasks.add_task') }}
+                            {{ subnavlink('View Tasks','fas fa-list','tasks.view_tasks') }}
+                            {{ subnavlink('Daily Reports','fas fa-calendar-check','tasks.admin_daily_tasks') }}
                         </div>
                     </details>
 
                     <!-- Assets -->
-                    <details class="group" {{ 'open' if request.endpoint in ['assets.add_asset','assets.view_assets', 'assets.manage_allocation', 'assets.asset_history'] else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if request.endpoint in ['assets.add_asset','assets.view_assets', 'assets.manage_allocation', 'assets.asset_history']
-                                        else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-box-open w-4 mr-3"></i> Assets
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if request.endpoint in ['assets.add_asset','assets.view_assets', 'assets.manage_allocation', 'assets.asset_history'] else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if request.endpoint in ['assets.add_asset','assets.view_assets', 'assets.manage_allocation', 'assets.asset_history']
+                                        else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-box-open w-5 mr-3 text-base text-black"></i>
+                            <span>Assets</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Add Asset','fas fa-plus','assets.add_asset') }}
-                            {{ navlink('View Assets','fas fa-list','assets.view_assets') }}
-                            <!--{{ navlink('Allocate Asset','fas fa-exchange-alt','assets.allocate_asset') }}-->
-                            {{ navlink('Manage Allocations','fas fa-tasks','assets.manage_allocation') }}
-                            {{ navlink('History','fas fa-history','assets.asset_history') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Add Asset','fas fa-plus','assets.add_asset') }}
+                            {{ subnavlink('View Assets','fas fa-list','assets.view_assets') }}
+                            <!--{{ subnavlink('Allocate Asset','fas fa-exchange-alt','assets.allocate_asset') }}-->
+                            {{ subnavlink('Manage Allocations','fas fa-tasks','assets.manage_allocation') }}
+                            {{ subnavlink('History','fas fa-history','assets.asset_history') }}
                         </div>
                     </details>
 
                     <!-- Careers -->
-                    <details class="group" {{ 'open' if request.endpoint in ['careers.add_job', 'careers.view_jobs', 'careers.employee_careers'] else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if request.endpoint in ['careers.add_job', 'careers.view_jobs', 'careers.employee_careers']
-                                        else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-briefcase w-4 mr-3"></i> Careers
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if request.endpoint in ['careers.add_job', 'careers.view_jobs', 'careers.employee_careers'] else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if request.endpoint in ['careers.add_job', 'careers.view_jobs', 'careers.employee_careers']
+                                        else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-briefcase w-5 mr-3 text-base text-black"></i>
+                            <span>Careers</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
+                        <div class="sidebar-submenu space-y-0.5">
                             {% if session.emp_type == 'admin' %}
-                                {{ navlink('Add Job','fas fa-plus','careers.add_job') }}
-                                {{ navlink('View Jobs','fas fa-list','careers.view_jobs') }}
+                                {{ subnavlink('Add Job','fas fa-plus','careers.add_job') }}
+                                {{ subnavlink('View Jobs','fas fa-list','careers.view_jobs') }}
                             {% else %}
-                                {{ navlink('Careers','fas fa-briefcase','careers.employee_careers') }}
+                                {{ subnavlink('Careers','fas fa-briefcase','careers.employee_careers') }}
                             {% endif %}
                         </div>
                     </details>
 
                     <!-- Wiki -->
-                    <details class="group" {{ 'open' if request.endpoint in ['wiki.admin_wiki_categories','wiki.add_wiki','wiki.view_wikis','wiki.edit_wiki', 'wiki.admin_wiki_views'] else '' }}>
-                        <summary class="flex items-center px-5 py-2 cursor-pointer rounded-md
-                                        {{ 'bg-blue-100 text-green-600 font-medium' if request.endpoint in ['wiki.admin_wiki_categories','wiki.add_wiki','wiki.view_wikis','wiki.edit_wiki', 'wiki.admin_wiki_views'] else 'text-gray-700 hover:bg-gray-100' }}">
-                            <i class="fas fa-book w-4 mr-3"></i> Wiki
-                            <i class="fas fa-chevron-down ml-auto transform transition group-open:rotate-180"></i>
+                    <details class="sidebar-accordion group" {{ 'open' if request.endpoint in ['wiki.admin_wiki_categories','wiki.add_wiki','wiki.view_wikis','wiki.edit_wiki', 'wiki.admin_wiki_views'] else '' }}>
+                        <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                        {{ 'bg-gray-100 text-black font-bold shadow-sm' if request.endpoint in ['wiki.admin_wiki_categories','wiki.add_wiki','wiki.view_wikis','wiki.edit_wiki', 'wiki.admin_wiki_views'] else 'text-black hover:bg-gray-50' }}">
+                            <i class="fas fa-book w-5 mr-3 text-base text-black"></i>
+                            <span>Wiki</span>
+                            <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
                         </summary>
-                        <div class="pl-9 mt-1 space-y-1">
-                            {{ navlink('Categories','fas fa-tags','wiki.admin_wiki_categories') }}
-                            {{ navlink('Add Wiki','fas fa-plus','wiki.add_wiki') }}
-                            {{ navlink('View Wikis','fas fa-list','wiki.view_wikis') }}
-                            {{ navlink('Wiki Views','fas fa-eye','wiki.admin_wiki_views') }}
+                        <div class="sidebar-submenu space-y-0.5">
+                            {{ subnavlink('Categories','fas fa-tags','wiki.admin_wiki_categories') }}
+                            {{ subnavlink('Add Wiki','fas fa-plus','wiki.add_wiki') }}
+                            {{ subnavlink('View Wikis','fas fa-list','wiki.view_wikis') }}
+                            {{ subnavlink('Wiki Views','fas fa-eye','wiki.admin_wiki_views') }}
                         </div>
                     </details>
 
