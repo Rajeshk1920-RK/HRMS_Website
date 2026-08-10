@@ -16,8 +16,46 @@ class DatabaseBase:
         return psycopg2.connect(self.dsn)
 
     def init_database(self):
-        conn = self.get_connection()
+        try:
+            conn = self.get_connection()
+        except Exception as e:
+            # Mask credentials in DSN before logging
+            masked_dsn = self.dsn
+            if "://" in masked_dsn:
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(masked_dsn)
+                    if parsed.password:
+                        netloc = f"{parsed.username}:******@{parsed.hostname}"
+                        if parsed.port:
+                            netloc += f":{parsed.port}"
+                        masked_dsn = parsed._replace(netloc=netloc).geturl()
+                except Exception:
+                    masked_dsn = "postgresql://******@******"
+            else:
+                parts = []
+                for part in masked_dsn.split():
+                    if part.startswith("password="):
+                        parts.append("password=******")
+                    elif part.startswith("user="):
+                        parts.append("user=******")
+                    else:
+                        parts.append(part)
+                masked_dsn = " ".join(parts)
+            
+            print("\n" + "="*80)
+            print("DATABASE CONNECTION ERROR")
+            print("="*80)
+            print(f"Failed to connect to the database using DSN: {masked_dsn}")
+            print(f"Error: {e}")
+            print("\nTIP: If deploying to Render, ensure you have created a PostgreSQL database")
+            print("and linked it to this service by adding the 'DATABASE_URL' environment variable")
+            print("in the Environment section of your Web Service's Render Dashboard.")
+            print("="*80 + "\n")
+            raise e
+
         cursor = conn.cursor()
+
 
         # Create tbl_employee
         cursor.execute('''
