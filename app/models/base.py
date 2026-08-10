@@ -48,9 +48,6 @@ class DatabaseBase:
             print("="*80)
             print(f"Failed to connect to the database using DSN: {masked_dsn}")
             print(f"Error: {e}")
-            print("\nTIP: If deploying to Render, ensure you have created a PostgreSQL database")
-            print("and linked it to this service by adding the 'DATABASE_URL' environment variable")
-            print("in the Environment section of your Web Service's Render Dashboard.")
             print("="*80 + "\n")
             raise e
 
