@@ -6,10 +6,11 @@ class WikiMixin:
        # ---------- Wiki Category CRUD ----------
     def add_wiki_category(self, category, img_filename):
         with self.get_connection() as conn:
-            conn.execute(
-                'INSERT INTO TblWikiCategory (Category, CatImg) VALUES (?, ?)',
-                (category, img_filename)
-            )
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    'INSERT INTO TblWikiCategory (Category, CatImg) VALUES (%s, %s)',
+                    (category, img_filename)
+                )
 
     def get_wiki_categories(self):
         conn = self.get_connection()
@@ -26,12 +27,12 @@ class WikiMixin:
         cursor = conn.cursor()
         if img_filename:
             cursor.execute(
-                'UPDATE TblWikiCategory SET Category=?, CatImg=? WHERE CategoryId=?',
+                'UPDATE TblWikiCategory SET Category=%s, CatImg=%s WHERE CategoryId=%s',
                 (category, img_filename, cat_id)
             )
         else:
             cursor.execute(
-                'UPDATE TblWikiCategory SET Category=? WHERE CategoryId=?',
+                'UPDATE TblWikiCategory SET Category=%s WHERE CategoryId=%s',
                 (category, cat_id)
             )
         conn.commit()
@@ -39,16 +40,18 @@ class WikiMixin:
 
     def delete_wiki_category(self, cat_id):
         with self.get_connection() as conn:
-            conn.execute('DELETE FROM TblWikiCategory WHERE CategoryId=?', (cat_id,))
+            with conn.cursor() as cursor:
+                cursor.execute('DELETE FROM TblWikiCategory WHERE CategoryId=%s', (cat_id,))
 
 
     # ---------- Wiki Page CRUD ----------
     def add_wiki_page(self, category_id, title, descr):
         with self.get_connection() as conn:
-            conn.execute(
-                'INSERT INTO TblWikiPage (CategoryId, Title, Descri) VALUES (?, ?, ?)',
-                (category_id, title, descr)
-            )
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    'INSERT INTO TblWikiPage (CategoryId, Title, Descri) VALUES (%s, %s, %s)',
+                    (category_id, title, descr)
+                )
 
     def get_wiki_pages(self):
         conn = self.get_connection()
@@ -76,7 +79,7 @@ class WikiMixin:
             wc.CatImg
             FROM TblWikiPage wp
             JOIN TblWikiCategory wc ON wp.CategoryId = wc.CategoryId
-            WHERE wp.WikiId = ?
+            WHERE wp.WikiId = %s
         ''', (wiki_id,))
         page = cursor.fetchone()
         conn.close()
@@ -84,24 +87,27 @@ class WikiMixin:
 
     def update_wiki_page(self, wiki_id, category_id, title, descr):
         with self.get_connection() as conn:
-            conn.execute(
-                'UPDATE TblWikiPage SET CategoryId=?, Title=?, Descri=? WHERE WikiId=?',
-                (category_id, title, descr, wiki_id)
-            )
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    'UPDATE TblWikiPage SET CategoryId=%s, Title=%s, Descri=%s WHERE WikiId=%s',
+                    (category_id, title, descr, wiki_id)
+                )
 
     def soft_delete_wiki_page(self, wiki_id):
         with self.get_connection() as conn:
-            conn.execute(
-                'UPDATE TblWikiPage SET RowStatus=1 WHERE WikiId=?',
-                (wiki_id,)
-            )
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    'UPDATE TblWikiPage SET RowStatus=1 WHERE WikiId=%s',
+                    (wiki_id,)
+                )
         # ---------- Wiki Views CRUD ----------
     def add_wiki_view(self, wiki_id, emp_id):
         with self.get_connection() as conn:
-            conn.execute(
-                'INSERT INTO TblWikiViews (WikiId, EmployeeId) VALUES (?, ?)',
-                (wiki_id, emp_id)
-            )
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    'INSERT INTO TblWikiViews (WikiId, EmployeeId) VALUES (%s, %s)',
+                    (wiki_id, emp_id)
+                )
 
     def get_wiki_views(self):
         conn = self.get_connection()
@@ -138,13 +144,13 @@ class WikiMixin:
         conditions = []
         params = []
         if start_date:
-            conditions.append("date(wv.ViewDateTime) >= date(?)")
+            conditions.append("wv.ViewDateTime::date >= %s::date")
             params.append(start_date)
         if end_date:
-            conditions.append("date(wv.ViewDateTime) <= date(?)")
+            conditions.append("wv.ViewDateTime::date <= %s::date")
             params.append(end_date)
         if wiki_id:
-            conditions.append("wv.WikiId = ?")
+            conditions.append("wv.WikiId = %s")
             params.append(wiki_id)
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
@@ -173,10 +179,10 @@ class WikiMixin:
         conditions = []
         params = []
         if start_date:
-            conditions.append("date(wv.ViewDateTime) >= date(?)")
+            conditions.append("wv.ViewDateTime::date >= %s::date")
             params.append(start_date)
         if end_date:
-            conditions.append("date(wv.ViewDateTime) <= date(?)")
+            conditions.append("wv.ViewDateTime::date <= %s::date")
             params.append(end_date)
         if conditions:
             query += " WHERE " + " AND ".join(conditions)

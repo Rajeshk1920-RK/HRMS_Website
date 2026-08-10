@@ -9,7 +9,7 @@ class ProjectMixin:
         cursor.execute('''
             INSERT INTO tbl_project
             (project_name, priority, project_desc, project_status, start_date, end_date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         ''', (data['project_name'], data['priority'], data['project_desc'],
               data['project_status'], data['start_date'], data['end_date']))
 
@@ -22,9 +22,9 @@ class ProjectMixin:
 
         cursor.execute('''
             UPDATE tbl_project
-            SET project_name = ?, priority = ?, project_desc = ?, project_status = ?,
-                start_date = ?, end_date = ?
-            WHERE project_id = ?
+            SET project_name = %s, priority = %s, project_desc = %s, project_status = %s,
+                start_date = %s, end_date = %s
+            WHERE project_id = %s
         ''', (data['project_name'], data['priority'], data['project_desc'],
               data['project_status'], data['start_date'], data['end_date'], project_id))
 
@@ -36,14 +36,14 @@ class ProjectMixin:
         cursor = conn.cursor()
 
         # Check for associated tasks
-        cursor.execute('SELECT COUNT(*) FROM tbl_task WHERE project_id = ?', (project_id,))
+        cursor.execute('SELECT COUNT(*) FROM tbl_task WHERE project_id = %s', (project_id,))
         task_count = cursor.fetchone()[0]
 
         if task_count > 0:
             conn.close()
             raise Exception('Cannot delete project with assigned tasks.')
 
-        cursor.execute('DELETE FROM tbl_project WHERE project_id = ?', (project_id,))
+        cursor.execute('DELETE FROM tbl_project WHERE project_id = %s', (project_id,))
         conn.commit()
         conn.close()
 
@@ -54,7 +54,7 @@ class ProjectMixin:
         cursor.execute('''
             SELECT project_id, project_name, priority, project_desc, project_status, start_date, end_date
             FROM tbl_project
-            WHERE project_id = ?
+            WHERE project_id = %s
         ''', (project_id,))
 
         project = cursor.fetchone()
@@ -84,7 +84,7 @@ class ProjectMixin:
                    t.start_date, t.end_date, e.first_name, e.last_name
             FROM tbl_task t
             JOIN tbl_employee e ON t.emp_id = e.emp_id
-            WHERE t.project_id = ?
+            WHERE t.project_id = %s
             ORDER BY t.inserted_date DESC
         ''', (project_id,))
 

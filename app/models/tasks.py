@@ -5,7 +5,7 @@ NOTE: the task/employee status-master methods were defined twice in the
 original database.py; both copies are preserved as-is (the later definition
 wins, exactly as before) to keep behaviour byte-identical.
 """
-import sqlite3
+import psycopg2
 
 
 class TaskMixin:
@@ -17,7 +17,7 @@ class TaskMixin:
         cursor.execute('''
             INSERT INTO tbl_task
             (project_id, emp_id, task_desc, priority, status, start_date, end_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', (data['project_id'], data['emp_id'], data['task_desc'],
               data['priority'], data['status'], data['start_date'], data['end_date']))
 
@@ -30,9 +30,9 @@ class TaskMixin:
 
         cursor.execute('''
             UPDATE tbl_task
-            SET project_id = ?, emp_id = ?, task_desc = ?, priority = ?,
-                status = ?, start_date = ?, end_date = ?
-            WHERE task_id = ?
+            SET project_id = %s, emp_id = %s, task_desc = %s, priority = %s,
+                status = %s, start_date = %s, end_date = %s
+            WHERE task_id = %s
         ''', (data['project_id'], data['emp_id'], data['task_desc'],
               data['priority'], data['status'], data['start_date'], data['end_date'], task_id))
 
@@ -44,8 +44,8 @@ class TaskMixin:
         cursor = conn.cursor()
 
         # Delete associated task details
-        cursor.execute('DELETE FROM tbl_task_details WHERE task_id = ?', (task_id,))
-        cursor.execute('DELETE FROM tbl_task WHERE task_id = ?', (task_id,))
+        cursor.execute('DELETE FROM tbl_task_details WHERE task_id = %s', (task_id,))
+        cursor.execute('DELETE FROM tbl_task WHERE task_id = %s', (task_id,))
 
         conn.commit()
         conn.close()
@@ -57,7 +57,7 @@ class TaskMixin:
         cursor.execute('''
             SELECT task_id, task_desc, project_id, emp_id, priority, status, start_date, end_date
             FROM tbl_task
-            WHERE task_id = ?
+            WHERE task_id = %s
         ''', (task_id,))
 
         task = cursor.fetchone()
@@ -73,20 +73,20 @@ class TaskMixin:
                     p.project_name
                 FROM tbl_task t
                 JOIN tbl_project p ON t.project_id = p.project_id
-                WHERE t.emp_id = ?
+                WHERE t.emp_id = %s
             '''
             params = [emp_id]
 
             if status_filter != 'all' and status_filter:
-                query += ' AND t.status = ?'
+                query += ' AND t.status = %s'
                 params.append(status_filter)
 
             if project_filter:
-                query += ' AND p.project_name = ?'
+                query += ' AND p.project_name = %s'
                 params.append(project_filter)
 
             if search_query:
-                query += ' AND (t.task_desc LIKE ? OR p.project_name LIKE ?)'
+                query += ' AND (t.task_desc LIKE %s OR p.project_name LIKE %s)'
                 search_term = f'%{search_query}%'
                 params.extend([search_term, search_term])
 
@@ -120,16 +120,16 @@ class TaskMixin:
 
         # Apply filters
         if project_filter:
-            conditions.append('p.project_name = ?')
+            conditions.append('p.project_name = %s')
             params.append(project_filter)
         if status_filter:
-            conditions.append('t.status = ?')
+            conditions.append('t.status = %s')
             params.append(status_filter)
         if employee_filter:
-            conditions.append("e.first_name || ' ' || e.last_name = ?")
+            conditions.append("e.first_name || ' ' || e.last_name = %s")
             params.append(employee_filter)
         if search_query:
-            conditions.append("(t.task_desc LIKE ? OR p.project_name LIKE ? OR (e.first_name || ' ' || e.last_name) LIKE ?)")
+            conditions.append("(t.task_desc LIKE %s OR p.project_name LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)")
             search_term = f'%{search_query}%'
             params.extend([search_term, search_term, search_term])
 
@@ -139,7 +139,7 @@ class TaskMixin:
             count_query += condition_str
 
         # Add sorting and pagination
-        query += ' ORDER BY t.inserted_date DESC LIMIT ? OFFSET ?'
+        query += ' ORDER BY t.inserted_date DESC LIMIT %s OFFSET %s'
         params.extend([page_size, (page - 1) * page_size])
 
         # Execute count query
@@ -162,15 +162,15 @@ class TaskMixin:
         cursor = conn.cursor()
 
         # Verify task belongs to employee
-        cursor.execute('SELECT emp_id FROM tbl_task WHERE task_id = ?', (task_id,))
+        cursor.execute('SELECT emp_id FROM tbl_task WHERE task_id = %s', (task_id,))
         task = cursor.fetchone()
         if not task or task[0] != emp_id:
             conn.close()
             raise Exception('Task does not belong to this employee.')
 
         cursor.execute('''
-            INSERT INTO tbl_task_details (task_id, desc, status)
-            VALUES (?, ?, ?)
+            INSERT INTO tbl_task_details (task_id, "desc", status)
+            VALUES (%s, %s, %s)
         ''', (task_id, desc, status))
 
         # Update task status based on the new detail
@@ -178,36 +178,36 @@ class TaskMixin:
             # Check if all task details are now complete
             cursor.execute('''
                 SELECT COUNT(*) FROM tbl_task_details
-                WHERE task_id = ? AND status != 'complete'
+                WHERE task_id = %s AND status != 'complete'
             ''', (task_id,))
             incomplete_count = cursor.fetchone()[0]
             if incomplete_count == 0:
                 # All details are complete, set task to completed
                 cursor.execute('''
                     UPDATE tbl_task
-                    SET status = ?, end_date = DATE('now')
-                    WHERE task_id = ?
+                    SET status = %s, end_date = CURRENT_DATE
+                    WHERE task_id = %s
                 ''', ('completed', task_id))
             else:
                 # There are still incomplete details, set task to incomplete and clear end_date
                 cursor.execute('''
                     UPDATE tbl_task
-                    SET status = ?, end_date = NULL
-                    WHERE task_id = ?
+                    SET status = %s, end_date = NULL
+                    WHERE task_id = %s
                 ''', ('incomplete', task_id))
         elif status == 'incomplete':
             # Detail is incomplete, set task to incomplete and clear end_date
             cursor.execute('''
                 UPDATE tbl_task
-                SET status = ?, end_date = NULL
-                WHERE task_id = ?
+                SET status = %s, end_date = NULL
+                WHERE task_id = %s
             ''', ('incomplete', task_id))
         else:
             # Unexpected status value, default to incomplete and clear end_date
             cursor.execute('''
                 UPDATE tbl_task
-                SET status = ?, end_date = NULL
-                WHERE task_id = ?
+                SET status = %s, end_date = NULL
+                WHERE task_id = %s
             ''', ('incomplete', task_id))
 
         conn.commit()
@@ -218,10 +218,10 @@ class TaskMixin:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT td.detail_id, td.desc, td.inserted_date, td.status
+            SELECT td.detail_id, td."desc", td.inserted_date, td.status
             FROM tbl_task_details td
             JOIN tbl_task t ON td.task_id = t.task_id
-            WHERE td.task_id = ? AND t.emp_id = ?
+            WHERE td.task_id = %s AND t.emp_id = %s
             ORDER BY td.inserted_date DESC
         ''', (task_id, emp_id))
 
@@ -234,9 +234,9 @@ class TaskMixin:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT td.detail_id, td.task_id, td.desc, td.inserted_date, td.status
+            SELECT td.detail_id, td.task_id, td."desc", td.inserted_date, td.status
             FROM tbl_task_details td
-            WHERE td.detail_id = ?
+            WHERE td.detail_id = %s
         ''', (detail_id,))
 
         detail = cursor.fetchone()
@@ -248,9 +248,9 @@ class TaskMixin:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT detail_id, desc, inserted_date, status
+            SELECT detail_id, "desc", inserted_date, status
             FROM tbl_task_details
-            WHERE task_id = ?
+            WHERE task_id = %s
             ORDER BY inserted_date DESC
         ''', (task_id,))
 
@@ -267,7 +267,7 @@ class TaskMixin:
             SELECT COUNT(*)
             FROM tbl_task_details td
             JOIN tbl_task t ON td.task_id = t.task_id
-            WHERE td.detail_id = ? AND t.emp_id = ?
+            WHERE td.detail_id = %s AND t.emp_id = %s
         ''', (detail_id, emp_id))
 
         count = cursor.fetchone()[0]
@@ -280,12 +280,12 @@ class TaskMixin:
 
         cursor.execute('''
             UPDATE tbl_task_details
-            SET desc = ?, status = ?, inserted_date = CURRENT_TIMESTAMP
-            WHERE detail_id = ?
+            SET "desc" = %s, status = %s, inserted_date = CURRENT_TIMESTAMP
+            WHERE detail_id = %s
         ''', (desc, status, detail_id))
 
         # Get the task_id for this detail
-        cursor.execute('SELECT task_id FROM tbl_task_details WHERE detail_id = ?', (detail_id,))
+        cursor.execute('SELECT task_id FROM tbl_task_details WHERE detail_id = %s', (detail_id,))
         task_row = cursor.fetchone()
         if task_row:
             task_id = task_row[0]
@@ -295,29 +295,29 @@ class TaskMixin:
                 # Check if all task details are now complete
                 cursor.execute('''
                     SELECT COUNT(*) FROM tbl_task_details
-                    WHERE task_id = ? AND status != 'complete'
+                    WHERE task_id = %s AND status != 'complete'
                 ''', (task_id,))
                 incomplete_count = cursor.fetchone()[0]
                 if incomplete_count == 0:
                     # All details are complete, set task to completed
                     cursor.execute('''
                         UPDATE tbl_task
-                        SET status = ?, end_date = DATE('now')
-                        WHERE task_id = ?
+                        SET status = %s, end_date = CURRENT_DATE
+                        WHERE task_id = %s
                     ''', ('completed', task_id))
                 else:
                     # There are still incomplete details, set task to incomplete and clear end_date
                     cursor.execute('''
                         UPDATE tbl_task
-                        SET status = ?, end_date = NULL
-                        WHERE task_id = ?
+                        SET status = %s, end_date = NULL
+                        WHERE task_id = %s
                     ''', ('incomplete', task_id))
             else:
                 # Detail is incomplete, set task to incomplete and clear end_date
                 cursor.execute('''
                     UPDATE tbl_task
-                    SET status = ?, end_date = NULL
-                    WHERE task_id = ?
+                    SET status = %s, end_date = NULL
+                    WHERE task_id = %s
                 ''', ('incomplete', task_id))
 
         conn.commit()
@@ -325,114 +325,132 @@ class TaskMixin:
 
     # ---------- TASK STATUS MASTER ----------
     def get_task_statuses(self):
-        with self.get_connection() as c:
-            return c.execute('SELECT status_id, name, description, color_class FROM tbl_task_status_master ORDER BY name').fetchall()
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                return c.execute('SELECT status_id, name, description, color_class FROM tbl_task_status_master ORDER BY name').fetchall()
 
     def add_task_status(self, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('INSERT INTO tbl_task_status_master (name, description, color_class) VALUES (?, ?, ?)',
-                          (name, description, color_class))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('INSERT INTO tbl_task_status_master (name, description, color_class) VALUES (%s, %s, %s)',
+                              (name, description, color_class))
             return True, 'Task status added successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This task status already exists.'
 
     def update_task_status(self, status_id, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('UPDATE tbl_task_status_master SET name = ?, description = ?, color_class = ? WHERE status_id = ?',
-                          (name, description, color_class, status_id))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('UPDATE tbl_task_status_master SET name = %s, description = %s, color_class = %s WHERE status_id = %s',
+                              (name, description, color_class, status_id))
             return True, 'Task status updated successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This task status already exists.'
 
     def delete_task_status(self, status_id):
-        with self.get_connection() as c:
-            c.execute('DELETE FROM tbl_task_status_master WHERE status_id = ?', (status_id,))
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                c.execute('DELETE FROM tbl_task_status_master WHERE status_id = %s', (status_id,))
         return True
 
     # ---------- EMPLOYEE STATUS MASTER ----------
     def get_employee_statuses(self):
-        with self.get_connection() as c:
-            return c.execute('SELECT status_id, name, description, color_class FROM tbl_employee_status_master ORDER BY name').fetchall()
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                return c.execute('SELECT status_id, name, description, color_class FROM tbl_employee_status_master ORDER BY name').fetchall()
 
     def add_employee_status(self, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('INSERT INTO tbl_employee_status_master (name, description, color_class) VALUES (?, ?, ?)',
-                          (name, description, color_class))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('INSERT INTO tbl_employee_status_master (name, description, color_class) VALUES (%s, %s, %s)',
+                              (name, description, color_class))
             return True, 'Employee status added successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This employee status already exists.'
 
     def update_employee_status(self, status_id, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('UPDATE tbl_employee_status_master SET name = ?, description = ?, color_class = ? WHERE status_id = ?',
-                          (name, description, color_class, status_id))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('UPDATE tbl_employee_status_master SET name = %s, description = %s, color_class = %s WHERE status_id = %s',
+                              (name, description, color_class, status_id))
             return True, 'Employee status updated successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This employee status already exists.'
 
     def delete_employee_status(self, status_id):
-        with self.get_connection() as c:
-            c.execute('DELETE FROM tbl_employee_status_master WHERE status_id = ?', (status_id,))
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                c.execute('DELETE FROM tbl_employee_status_master WHERE status_id = %s', (status_id,))
         return True
 
     # ---------- TASK STATUS MASTER ----------
     def get_task_statuses(self):
-        with self.get_connection() as c:
-            return c.execute('SELECT status_id, name, description, color_class FROM tbl_task_status_master ORDER BY name').fetchall()
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                c.execute('SELECT status_id, name, description, color_class FROM tbl_task_status_master ORDER BY name')
+                return c.fetchall()
 
     def add_task_status(self, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('INSERT INTO tbl_task_status_master (name, description, color_class) VALUES (?, ?, ?)',
-                          (name, description, color_class))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('INSERT INTO tbl_task_status_master (name, description, color_class) VALUES (%s, %s, %s)',
+                              (name, description, color_class))
             return True, 'Task status added successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This task status already exists.'
 
     def update_task_status(self, status_id, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('UPDATE tbl_task_status_master SET name = ?, description = ?, color_class = ? WHERE status_id = ?',
-                          (name, description, color_class, status_id))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('UPDATE tbl_task_status_master SET name = %s, description = %s, color_class = %s WHERE status_id = %s',
+                              (name, description, color_class, status_id))
             return True, 'Task status updated successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This task status already exists.'
 
     def delete_task_status(self, status_id):
-        with self.get_connection() as c:
-            c.execute('DELETE FROM tbl_task_status_master WHERE status_id = ?', (status_id,))
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                c.execute('DELETE FROM tbl_task_status_master WHERE status_id = %s', (status_id,))
         return True
 
     # ---------- EMPLOYEE STATUS MASTER ----------
     def get_employee_statuses(self):
-        with self.get_connection() as c:
-            return c.execute('SELECT status_id, name, description, color_class FROM tbl_employee_status_master ORDER BY name').fetchall()
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                c.execute('SELECT status_id, name, description, color_class FROM tbl_employee_status_master ORDER BY name')
+                return c.fetchall()
 
     def add_employee_status(self, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('INSERT INTO tbl_employee_status_master (name, description, color_class) VALUES (?, ?, ?)',
-                          (name, description, color_class))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('INSERT INTO tbl_employee_status_master (name, description, color_class) VALUES (%s, %s, %s)',
+                              (name, description, color_class))
             return True, 'Employee status added successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This employee status already exists.'
 
     def update_employee_status(self, status_id, name, description, color_class):
         try:
-            with self.get_connection() as c:
-                c.execute('UPDATE tbl_employee_status_master SET name = ?, description = ?, color_class = ? WHERE status_id = ?',
-                          (name, description, color_class, status_id))
+            with self.get_connection() as conn:
+                with conn.cursor() as c:
+                    c.execute('UPDATE tbl_employee_status_master SET name = %s, description = %s, color_class = %s WHERE status_id = %s',
+                              (name, description, color_class, status_id))
             return True, 'Employee status updated successfully.'
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             return False, 'This employee status already exists.'
 
     def delete_employee_status(self, status_id):
-        with self.get_connection() as c:
-            c.execute('DELETE FROM tbl_employee_status_master WHERE status_id = ?', (status_id,))
+        with self.get_connection() as conn:
+            with conn.cursor() as c:
+                c.execute('DELETE FROM tbl_employee_status_master WHERE status_id = %s', (status_id,))
         return True
 
     # ========== JIRA-LIKE TRACKING & REPORTS ====================================
@@ -442,14 +460,14 @@ class TaskMixin:
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE tbl_task
-            SET status = ?
-            WHERE task_id = ?
+            SET status = %s
+            WHERE task_id = %s
         ''', (status, task_id))
         if status == 'completed':
             cursor.execute('''
                 UPDATE tbl_task
-                SET end_date = DATE('now')
-                WHERE task_id = ?
+                SET end_date = CURRENT_DATE
+                WHERE task_id = %s
             ''', (task_id,))
         conn.commit()
         conn.close()
@@ -459,7 +477,7 @@ class TaskMixin:
         cursor = conn.cursor()
 
         query = '''
-            SELECT td.detail_id, td.task_id, td.desc, td.inserted_date, td.status,
+            SELECT td.detail_id, td.task_id, td."desc", td.inserted_date, td.status,
                    t.task_desc, p.project_name, e.first_name, e.last_name
             FROM tbl_task_details td
             JOIN tbl_task t ON td.task_id = t.task_id
@@ -470,27 +488,27 @@ class TaskMixin:
         params = []
 
         if emp_id:
-            conditions.append('t.emp_id = ?')
+            conditions.append('t.emp_id = %s')
             params.append(emp_id)
         if project_filter:
-            conditions.append('p.project_name = ?')
+            conditions.append('p.project_name = %s')
             params.append(project_filter)
         if status_filter:
             # task status
-            conditions.append('t.status = ?')
+            conditions.append('t.status = %s')
             params.append(status_filter)
         if employee_filter:
-            conditions.append("e.first_name || ' ' || e.last_name = ?")
+            conditions.append("e.first_name || ' ' || e.last_name = %s")
             params.append(employee_filter)
         if search_query:
-            conditions.append("(td.desc LIKE ? OR t.task_desc LIKE ? OR p.project_name LIKE ? OR (e.first_name || ' ' || e.last_name) LIKE ?)")
+            conditions.append("(td.desc LIKE %s OR t.task_desc LIKE %s OR p.project_name LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)")
             search_term = f'%{search_query}%'
             params.extend([search_term, search_term, search_term, search_term])
 
         if conditions:
             query += ' WHERE ' + ' AND '.join(conditions)
 
-        query += ' ORDER BY td.inserted_date DESC LIMIT ?'
+        query += ' ORDER BY td.inserted_date DESC LIMIT %s'
         params.append(limit)
 
         cursor.execute(query, params)
@@ -510,13 +528,13 @@ class TaskMixin:
         conditions = []
         params = []
         if project_filter:
-            conditions.append('p.project_name = ?')
+            conditions.append('p.project_name = %s')
             params.append(project_filter)
         if employee_filter:
-            conditions.append("e.first_name || ' ' || e.last_name = ?")
+            conditions.append("e.first_name || ' ' || e.last_name = %s")
             params.append(employee_filter)
         if search_query:
-            conditions.append("(t.task_desc LIKE ? OR p.project_name LIKE ? OR (e.first_name || ' ' || e.last_name) LIKE ?)")
+            conditions.append("(t.task_desc LIKE %s OR p.project_name LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)")
             search_term = f'%{search_query}%'
             params.extend([search_term, search_term, search_term])
 
@@ -541,13 +559,13 @@ class TaskMixin:
         conditions = []
         params = []
         if status_filter:
-            conditions.append('t.status = ?')
+            conditions.append('t.status = %s')
             params.append(status_filter)
         if employee_filter:
-            conditions.append("e.first_name || ' ' || e.last_name = ?")
+            conditions.append("e.first_name || ' ' || e.last_name = %s")
             params.append(employee_filter)
         if search_query:
-            conditions.append("(t.task_desc LIKE ? OR p.project_name LIKE ? OR (e.first_name || ' ' || e.last_name) LIKE ?)")
+            conditions.append("(t.task_desc LIKE %s OR p.project_name LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)")
             search_term = f'%{search_query}%'
             params.extend([search_term, search_term, search_term])
 
@@ -572,13 +590,13 @@ class TaskMixin:
         '''
         params = []
         if project_filter:
-            query += ' AND p.project_name = ?'
+            query += ' AND p.project_name = %s'
             params.append(project_filter)
         if status_filter:
-            query += ' AND t.status = ?'
+            query += ' AND t.status = %s'
             params.append(status_filter)
         if search_query:
-            query += " AND (t.task_desc LIKE ? OR p.project_name LIKE ? OR (e.first_name || ' ' || e.last_name) LIKE ?)"
+            query += " AND (t.task_desc LIKE %s OR p.project_name LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)"
             search_term = f'%{search_query}%'
             params.extend([search_term, search_term, search_term])
 
@@ -595,14 +613,14 @@ class TaskMixin:
             SELECT t.status, COUNT(*)
             FROM tbl_task t
             JOIN tbl_project p ON t.project_id = p.project_id
-            WHERE t.emp_id = ?
+            WHERE t.emp_id = %s
         '''
         params = [emp_id]
         if project_filter:
-            query += ' AND p.project_name = ?'
+            query += ' AND p.project_name = %s'
             params.append(project_filter)
         if search_query:
-            query += ' AND (t.task_desc LIKE ? OR p.project_name LIKE ?)'
+            query += ' AND (t.task_desc LIKE %s OR p.project_name LIKE %s)'
             search_term = f'%{search_query}%'
             params.extend([search_term, search_term])
 
@@ -618,7 +636,7 @@ class TaskMixin:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO tbl_daily_task (emp_id, task_title, task_desc, project_status, task_hours)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (emp_id, title, desc, project_status, task_hours))
         conn.commit()
         conn.close()
@@ -629,14 +647,14 @@ class TaskMixin:
         query = '''
             SELECT daily_task_id, emp_id, task_title, task_desc, project_status, inserted_date, admin_feedback, task_hours
             FROM tbl_daily_task
-            WHERE emp_id = ?
+            WHERE emp_id = %s
         '''
         params = [emp_id]
         if start_date:
-            query += ' AND date(inserted_date) >= ?'
+            query += ' AND date(inserted_date) >= %s'
             params.append(start_date)
         if end_date:
-            query += ' AND date(inserted_date) <= ?'
+            query += ' AND date(inserted_date) <= %s'
             params.append(end_date)
         query += ' ORDER BY inserted_date DESC'
         cursor.execute(query, params)
@@ -650,7 +668,7 @@ class TaskMixin:
         cursor.execute('''
             SELECT daily_task_id, emp_id, task_title, task_desc, project_status, inserted_date, admin_feedback, task_hours
             FROM tbl_daily_task
-            WHERE daily_task_id = ?
+            WHERE daily_task_id = %s
         ''', (daily_task_id,))
         data = cursor.fetchone()
         conn.close()
@@ -661,8 +679,8 @@ class TaskMixin:
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE tbl_daily_task
-            SET task_title = ?, task_desc = ?, project_status = ?, task_hours = ?
-            WHERE daily_task_id = ? AND emp_id = ?
+            SET task_title = %s, task_desc = %s, project_status = %s, task_hours = %s
+            WHERE daily_task_id = %s AND emp_id = %s
         ''', (title, desc, project_status, task_hours, daily_task_id, emp_id))
         conn.commit()
         conn.close()
@@ -676,7 +694,7 @@ class TaskMixin:
                    e.first_name, e.last_name, dt.task_hours
              FROM tbl_daily_task dt
              JOIN tbl_employee e ON dt.emp_id = e.emp_id
-             WHERE dt.emp_id = ? AND date(dt.inserted_date, '+5 hours', '+30 minutes') = ?
+             WHERE dt.emp_id = %s AND (dt.inserted_date + interval '5 hours 30 minutes')::date = %s
              ORDER BY dt.inserted_date DESC
         ''', (emp_id, task_date))
         data = cursor.fetchall()
@@ -702,8 +720,8 @@ class TaskMixin:
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE tbl_daily_task
-            SET admin_feedback = ?
-            WHERE daily_task_id = ?
+            SET admin_feedback = %s
+            WHERE daily_task_id = %s
         ''', (feedback, daily_task_id))
         conn.commit()
         conn.close()
@@ -713,7 +731,7 @@ class TaskMixin:
         cursor = conn.cursor()
         cursor.execute('''
             DELETE FROM tbl_daily_task
-            WHERE daily_task_id = ? AND emp_id = ?
+            WHERE daily_task_id = %s AND emp_id = %s
         ''', (daily_task_id, emp_id))
         conn.commit()
         conn.close()

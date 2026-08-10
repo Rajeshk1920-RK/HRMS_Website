@@ -15,7 +15,8 @@ def add_asset():
         return redirect(url_for('auth.login'))
     if request.method == 'POST':
         conn = get_db_connection()
-        conn.execute('INSERT INTO TblAssets (ItemName, Model, Price, Descriptions, Status) VALUES (?, ?, ?, ?, ?)',
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO TblAssets (ItemName, Model, Price, Descriptions, Status) VALUES (%s, %s, %s, %s, %s)',
                      (request.form['item_name'], request.form['model'], request.form['price'], request.form['descriptions'], request.form['status']))
         conn.commit()
         conn.close()
@@ -28,7 +29,9 @@ def view_assets():
     if 'user_id' not in session or session['emp_type'] != 'admin':
         return redirect(url_for('auth.login'))
     conn = get_db_connection()
-    assets = conn.execute('SELECT * FROM TblAssets').fetchall()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM TblAssets')
+    assets = cursor.fetchall()
     conn.close()
     return render_template('assets/view_assets.html', assets=assets)
 
@@ -37,9 +40,11 @@ def edit_asset(asset_id):
     if 'user_id' not in session or session['emp_type'] != 'admin':
         return redirect(url_for('auth.login'))
     conn = get_db_connection()
-    asset = conn.execute('SELECT * FROM TblAssets WHERE AssetId = ?', (asset_id,)).fetchone()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM TblAssets WHERE AssetId = %s', (asset_id,))
+    asset = cursor.fetchone()
     if request.method == 'POST':
-        conn.execute('UPDATE TblAssets SET ItemName=?, Model=?, Price=?, Descriptions=?, Status=? WHERE AssetId=?',
+        cursor.execute('UPDATE TblAssets SET ItemName=%s, Model=%s, Price=%s, Descriptions=%s, Status=%s WHERE AssetId=%s',
                      (request.form['item_name'], request.form['model'], request.form['price'], request.form['descriptions'], request.form['status'], asset_id))
         conn.commit()
         conn.close()
@@ -53,7 +58,8 @@ def delete_asset(asset_id):
     if 'user_id' not in session or session['emp_type'] != 'admin':
         return redirect(url_for('auth.login'))
     conn = get_db_connection()
-    conn.execute('DELETE FROM TblAssets WHERE AssetId = ?', (asset_id,))
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM TblAssets WHERE AssetId = %s', (asset_id,))
     conn.commit()
     conn.close()
     flash('Asset deleted successfully!', 'success')
@@ -65,27 +71,31 @@ def allocate_asset():
         return redirect(url_for('auth.login'))
 
     conn = get_db_connection()
-    assets = conn.execute("SELECT * FROM TblAssets WHERE Status = 'Available'").fetchall()
-    employees = conn.execute("SELECT emp_id, first_name, last_name FROM tbl_employee WHERE status != 'inactive'").fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM TblAssets WHERE Status = 'Available'")
+    assets = cursor.fetchall()
+    cursor.execute("SELECT emp_id, first_name, last_name FROM tbl_employee WHERE status != 'inactive'")
+    employees = cursor.fetchall()
 
     selected_asset_id = request.args.get('asset_id', type=int)
 
     if request.method == 'POST':
-        conn.execute('''
+        cursor.execute('''
             INSERT INTO TblAllocateAssets (AssetId, EmployeeId, AllocateDate, Status, AllocatedBy, Description)
-            VALUES (?, ?, DATE('now'), 'Allocated', ?, ?)
+            VALUES (%s, %s, CURRENT_DATE, 'Allocated', %s, %s)
         ''', (
             request.form['asset_id'],
             request.form['employee_id'],
             request.form['allocated_by'],
             request.form['description']
         ))
-        conn.execute("UPDATE TblAssets SET Status = 'Allocated' WHERE AssetId = ?", (request.form['asset_id'],))
+        cursor.execute("UPDATE TblAssets SET Status = 'Allocated' WHERE AssetId = %s", (request.form['asset_id'],))
         conn.commit()
         conn.close()
         flash("Asset allocated successfully", "success")
         return redirect(url_for('assets.manage_allocation'))
 
+    conn.close()
     return render_template(
         'assets/allocate_asset.html',
         assets=assets,
@@ -96,10 +106,11 @@ def allocate_asset():
 @assets_bp.route('/admin/manage_allocation')
 def manage_allocation():
     conn = get_db_connection()
-    rows = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT aa.*, a.ItemName, a.Model, e.first_name, e.last_name,
             (
-                SELECT GROUP_CONCAT(IssueId || '##' || IssueText, '||')
+                SELECT STRING_AGG(IssueId::text || '##' || IssueText, '||')
                 FROM TblAssetIssues
                 WHERE AssetId = aa.AssetId AND EmployeeId = aa.EmployeeId AND Status = 'Open'
             ) AS Issues
@@ -107,43 +118,52 @@ def manage_allocation():
         JOIN TblAssets a ON aa.AssetId = a.AssetId
         JOIN tbl_employee e ON aa.EmployeeId = e.emp_id
         ORDER BY aa.AllocateDate DESC
-    ''').fetchall()
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
     return render_template('assets/manage_allocation.html', allocations=rows)
 
 @assets_bp.route('/admin/edit_allocation/<int:alloc_id>', methods=['GET', 'POST'])
 def edit_allocation(alloc_id):
     conn = get_db_connection()
-    allocation = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT aa.*, a.ItemName, a.Model, e.first_name, e.last_name
         FROM TblAllocateAssets aa
         JOIN TblAssets a ON aa.AssetId = a.AssetId
         JOIN tbl_employee e ON aa.EmployeeId = e.emp_id
-        WHERE aa.AllocatedId = ?
-    ''', (alloc_id,)).fetchone()
+        WHERE aa.AllocatedId = %s
+    ''', (alloc_id,))
+    allocation = cursor.fetchone()
 
     if request.method == 'POST':
-        conn.execute("UPDATE TblAllocateAssets SET Status = 'Returned' WHERE AllocatedId = ?", (alloc_id,))
-        conn.execute("UPDATE TblAssets SET Status = 'Available' WHERE AssetId = ?", (allocation['AssetId'],))
+        cursor.execute("UPDATE TblAllocateAssets SET Status = 'Returned' WHERE AllocatedId = %s", (alloc_id,))
+        cursor.execute("UPDATE TblAssets SET Status = 'Available' WHERE AssetId = %s", (allocation['AssetId'],))
         conn.commit()
         conn.close()
         flash("Asset returned", "success")
         return redirect(url_for('assets.manage_allocation'))
 
+    conn.close()
     return render_template('assets/edit_allocation.html', allocation=allocation)
 
 @assets_bp.route('/admin/asset_history', methods=['GET'])
 def asset_history():
     selected_emp_id = request.args.get('employee_id', type=int)
     conn = get_db_connection()
-    employees = conn.execute("SELECT emp_id, first_name, last_name FROM tbl_employee WHERE status != 'inactive'").fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT emp_id, first_name, last_name FROM tbl_employee WHERE status != 'inactive'")
+    employees = cursor.fetchall()
     history = []
     if selected_emp_id:
-        history = conn.execute('''
+        cursor.execute('''
             SELECT aa.*, a.ItemName, a.Model FROM TblAllocateAssets aa
             JOIN TblAssets a ON aa.AssetId = a.AssetId
-            WHERE aa.EmployeeId = ?
+            WHERE aa.EmployeeId = %s
             ORDER BY aa.AllocateDate DESC
-        ''', (selected_emp_id,)).fetchall()
+        ''', (selected_emp_id,))
+        history = cursor.fetchall()
+    conn.close()
     return render_template('assets/asset_history.html', employees=employees, history=history, selected_emp_id=selected_emp_id)
 
 @assets_bp.route('/employee/assets')
@@ -152,19 +172,23 @@ def employee_assets():
         return redirect(url_for('auth.login'))
 
     conn = get_db_connection()
-    assets = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT aa.*, a.ItemName, a.Model
         FROM TblAllocateAssets aa
         JOIN TblAssets a ON aa.AssetId = a.AssetId
-        WHERE aa.EmployeeId = ? AND aa.Status = 'Allocated'
+        WHERE aa.EmployeeId = %s AND aa.Status = 'Allocated'
         ORDER BY aa.AllocateDate DESC
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'],))
+    assets = cursor.fetchall()
 
-    issues = conn.execute('''
+    cursor.execute('''
         SELECT * FROM TblAssetIssues
-        WHERE EmployeeId = ?
+        WHERE EmployeeId = %s
         ORDER BY ReportedDate DESC
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'],))
+    issues = cursor.fetchall()
+    conn.close()
 
     # Group issues by asset ID and status
     open_issues_by_asset = {}
@@ -189,9 +213,10 @@ def report_asset_issue(asset_id):
     issue_text = request.form['issue_text'].strip()
     if issue_text:
         conn = get_db_connection()
-        conn.execute('''
+        cursor = conn.cursor()
+        cursor.execute('''
             INSERT INTO TblAssetIssues (AssetId, EmployeeId, IssueText)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         ''', (asset_id, session['user_id'], issue_text))
         conn.commit()
         conn.close()
@@ -213,12 +238,13 @@ def resolve_issue(issue_id):
         return redirect(url_for('assets.manage_allocation'))
 
     conn = get_db_connection()
-    conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         UPDATE TblAssetIssues
         SET Status = 'Resolved',
-            ResolvedComment = ?,
-            ResolvedDate = DATE('now')
-        WHERE IssueId = ?
+            ResolvedComment = %s,
+            ResolvedDate = CURRENT_DATE
+        WHERE IssueId = %s
     ''', (comment, issue_id))
     conn.commit()
     conn.close()

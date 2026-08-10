@@ -25,11 +25,15 @@ PERSISTENT_DATA_DIR = os.getenv('PERSISTENT_DATA_DIR')
 if PERSISTENT_DATA_DIR:
     # Ensure the persistent directory exists
     os.makedirs(PERSISTENT_DATA_DIR, exist_ok=True)
-    # Database is stored in the persistent directory
-    DB_PATH = os.path.join(PERSISTENT_DATA_DIR, 'project_tracking.db')
-else:
-    # Default to project root for local development without persistent storage config
-    DB_PATH = os.path.join(BASE_DIR, 'project_tracking.db')
+
+# PostgreSQL connection
+PG_HOST = os.getenv('PG_HOST', 'localhost')
+PG_PORT = os.getenv('PG_PORT', '5432')
+PG_DBNAME = os.getenv('PG_DBNAME', 'project_tracking')
+PG_USER = os.getenv('PG_USER', 'postgres')
+PG_PASSWORD = os.getenv('PG_PASSWORD', '')
+
+DB_DSN = f"host={PG_HOST} port={PG_PORT} dbname={PG_DBNAME} user={PG_USER} password={PG_PASSWORD}"
 
 # Upload folders
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'bngImg')

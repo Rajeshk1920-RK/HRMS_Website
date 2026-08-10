@@ -10,7 +10,7 @@ class AuthMixin:
         cursor.execute('''
             SELECT emp_id, first_name, last_name, emp_type, status
             FROM tbl_employee
-            WHERE email = ? AND password = ? AND status != 'inactive'
+            WHERE email = %s AND password = %s AND status != 'inactive'
         ''', (email, hashed_password))
 
         user = cursor.fetchone()

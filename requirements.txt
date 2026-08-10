@@ -4,3 +4,4 @@ pytz
 openpyxl
 python-dotenv
 gunicorn
+psycopg2-binary
