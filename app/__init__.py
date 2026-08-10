@@ -65,3 +65,12 @@ def create_app():
         app.register_blueprint(bp)
 
     return app
+
+
+def __getattr__(name):
+    if name == 'app':
+        app_instance = create_app()
+        globals()['app'] = app_instance
+        return app_instance
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
