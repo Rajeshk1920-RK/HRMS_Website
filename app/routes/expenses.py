@@ -154,19 +154,19 @@ def existing_expenses():
 
     if session['emp_type'] == 'admin':
         if employee_id:
-            filters.append("ex.employee_id = ?")
+            filters.append("ex.employee_id = %s")
             params.append(employee_id)
         if expense_type:
-            filters.append("et.expense_type = ?")
+            filters.append("et.expense_type = %s")
             params.append(expense_type)
         if status:
-            filters.append("ex.status = ?")
+            filters.append("ex.status = %s")
             params.append(status)
         if from_date:
-            filters.append("DATE(ex.inserted_date) >= ?")
+            filters.append("DATE(ex.inserted_date) >= %s")
             params.append(from_date)
         if to_date:
-            filters.append("DATE(ex.inserted_date) <= ?")
+            filters.append("DATE(ex.inserted_date) <= %s")
             params.append(to_date)
 
         where_clause = 'WHERE ' + ' AND '.join(filters) if filters else ''
@@ -176,16 +176,16 @@ def existing_expenses():
         employees = db.get_employees(status_filter='active')
 
     else:
-        base = "WHERE ex.employee_id = ?"
+        base = "WHERE ex.employee_id = %s"
         params = [session['user_id']]
         if status:
-            base += " AND ex.status = ?"
+            base += " AND ex.status = %s"
             params.append(status)
         if from_date:
-            base += " AND DATE(ex.inserted_date) >= ?"
+            base += " AND DATE(ex.inserted_date) >= %s"
             params.append(from_date)
         if to_date:
-            base += " AND DATE(ex.inserted_date) <= ?"
+            base += " AND DATE(ex.inserted_date) <= %s"
             params.append(to_date)
 
         total = db.count_expenses(base, tuple(params))
@@ -347,7 +347,7 @@ def generate_expense_report(emp_id):
     # Get expenses
     conn = db.get_connection()
     cursor = conn.cursor()
-    expenses = cursor.execute('''
+    cursor.execute('''
         SELECT ex.expense_id, et.expense_type, st.sub_expense_type,
                e.first_name||' '||e.last_name AS emp_name,
                ex.exp_description, ex.status,
@@ -360,9 +360,10 @@ def generate_expense_report(emp_id):
         JOIN tbl_expense_type et ON et.expense_type_id = ex.expense_type_id
         LEFT JOIN tbl_sub_expense_type st ON st.sub_expense_type_id = ex.sub_expense_type_id
         JOIN tbl_employee e ON e.emp_id = ex.employee_id
-        WHERE ex.employee_id = ? AND ex.expense_date BETWEEN ? AND ?
+        WHERE ex.employee_id = %s AND ex.expense_date BETWEEN %s AND %s
         ORDER BY ex.expense_date
-    ''', (emp_id, first_day.isoformat(), last_day.isoformat())).fetchall()
+    ''', (emp_id, first_day.isoformat(), last_day.isoformat()))
+    expenses = cursor.fetchall()
     conn.close()
 
     # Load template

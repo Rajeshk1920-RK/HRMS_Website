@@ -327,7 +327,8 @@ class TaskMixin:
     def get_task_statuses(self):
         with self.get_connection() as conn:
             with conn.cursor() as c:
-                return c.execute('SELECT status_id, name, description, color_class FROM tbl_task_status_master ORDER BY name').fetchall()
+                c.execute('SELECT status_id, name, description, color_class FROM tbl_task_status_master ORDER BY name')
+                return c.fetchall()
 
     def add_task_status(self, name, description, color_class):
         try:
@@ -359,7 +360,8 @@ class TaskMixin:
     def get_employee_statuses(self):
         with self.get_connection() as conn:
             with conn.cursor() as c:
-                return c.execute('SELECT status_id, name, description, color_class FROM tbl_employee_status_master ORDER BY name').fetchall()
+                c.execute('SELECT status_id, name, description, color_class FROM tbl_employee_status_master ORDER BY name')
+                return c.fetchall()
 
     def add_employee_status(self, name, description, color_class):
         try:

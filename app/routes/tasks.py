@@ -271,6 +271,39 @@ def employee_daily_tasks():
                            start_date=start_date,
                            end_date=end_date)
 
+
+@tasks_bp.route('/employee/daily_task_details/<string:task_date>')
+def employee_daily_task_details(task_date):
+    if 'user_id' not in session or session['emp_type'] != 'emp':
+        return redirect(url_for('auth.login'))
+
+    emp_id = session['user_id']
+    employee = db.get_employee(emp_id)
+    if not employee:
+        flash('Employee not found.', 'error')
+        return redirect(url_for('tasks.employee_daily_tasks'))
+
+    emp_name = f"{employee[1]} {employee[2]}".strip()
+    tasks = db.get_daily_tasks_by_employee_and_date(emp_id, task_date)
+
+    # Format display date from YYYY-MM-DD to DD-MM-YYYY
+    try:
+        display_date = datetime.strptime(task_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    except ValueError:
+        display_date = task_date
+
+    # Calculate total hours
+    total_hours = sum(t[9] or 0 for t in tasks)
+
+    return render_template('tasks/employee_daily_task_details.html',
+                           tasks=tasks,
+                           employee_name=emp_name,
+                           emp_id=emp_id,
+                           task_date=task_date,
+                           display_date=display_date,
+                           total_hours=total_hours)
+
+
 @tasks_bp.route('/employee/daily_task/edit/<int:task_id>', methods=['GET', 'POST'])
 def edit_daily_task(task_id):
     if 'user_id' not in session or session['emp_type'] != 'emp':

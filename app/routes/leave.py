@@ -72,27 +72,27 @@ def admin_leave_requests():
 
     employee = request.args.get('employee', '').strip()
     if employee:
-        filters.append("e.emp_id = ?")
+        filters.append("e.emp_id = %s")
         params.append(employee)
 
     ltype = request.args.get('type', '').strip()
     if ltype:
-        filters.append("lt.leave_type_id = ?")
+        filters.append("lt.leave_type_id = %s")
         params.append(ltype)
 
     status = request.args.get('status', '').strip()
     if status:
-        filters.append("lr.status = ?")
+        filters.append("lr.status = %s")
         params.append(status)
 
     from_date = request.args.get('from_date', '').strip()
     if from_date:
-        filters.append("DATE(lr.start_date) >= ?")
+        filters.append("DATE(lr.start_date) >= %s")
         params.append(from_date)
 
     to_date = request.args.get('to_date', '').strip()
     if to_date:
-        filters.append("DATE(lr.end_date) <= ?")
+        filters.append("DATE(lr.end_date) <= %s")
         params.append(to_date)
 
     where = 'WHERE ' + ' AND '.join(filters) if filters else ''
@@ -143,7 +143,7 @@ def employee_leave():
         return redirect(url_for('leave.employee_leave_requests'))
 
     leave_types = db.get_leave_types()
-    my_requests = db.get_leave_requests('WHERE lr.employee_id=?', (session['user_id'],))
+    my_requests = db.get_leave_requests('WHERE lr.employee_id=%s', (session['user_id'],))
     today_iso    = date.today().isoformat()          #  ← new
 
     return render_template('leave/employee_leave.html',
@@ -155,7 +155,7 @@ def employee_leave_requests():
     if 'user_id' not in session or session['emp_type'] != 'emp':
         return redirect(url_for('auth.login'))
 
-    my_requests = db.get_leave_requests('WHERE lr.employee_id=?', (session['user_id'],))
+    my_requests = db.get_leave_requests('WHERE lr.employee_id=%s', (session['user_id'],))
     return render_template('leave/employee_leave_requests.html', my_requests=my_requests)
 
 @leave_bp.route('/admin/leave_summary', methods=['GET', 'POST'])

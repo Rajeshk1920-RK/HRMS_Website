@@ -68,7 +68,7 @@ def api_check_registration_status():
     cursor.execute('''
         SELECT first_name, last_name, status, inserted_date, department
         FROM tbl_registration_requests
-        WHERE email = ?
+        WHERE email = %s
         ORDER BY inserted_date DESC
         LIMIT 1
     ''', (email,))

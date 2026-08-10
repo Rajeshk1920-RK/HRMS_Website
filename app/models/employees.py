@@ -74,7 +74,7 @@ class EmployeeMixin:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT emp_id, first_name, last_name, gender, dob, address, phone_no, email, status, emp_type, department
+            SELECT emp_id, first_name, last_name, gender, dob, address, phone_no, email, status, emp_type, department, password
             FROM tbl_employee
             WHERE emp_id = %s
         ''', (emp_id,))
