@@ -27,13 +27,17 @@ if PERSISTENT_DATA_DIR:
     os.makedirs(PERSISTENT_DATA_DIR, exist_ok=True)
 
 # PostgreSQL connection
-PG_HOST = os.getenv('PG_HOST', 'localhost')
-PG_PORT = os.getenv('PG_PORT', '5432')
-PG_DBNAME = os.getenv('PG_DBNAME', 'project_tracking')
-PG_USER = os.getenv('PG_USER', 'postgres')
-PG_PASSWORD = os.getenv('PG_PASSWORD', '')
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-DB_DSN = f"host={PG_HOST} port={PG_PORT} dbname={PG_DBNAME} user={PG_USER} password={PG_PASSWORD}"
+if DATABASE_URL:
+    DB_DSN = DATABASE_URL
+else:
+    PG_HOST = os.getenv('PG_HOST', 'localhost')
+    PG_PORT = os.getenv('PG_PORT', '5432')
+    PG_DBNAME = os.getenv('PG_DBNAME', 'project_tracking')
+    PG_USER = os.getenv('PG_USER', 'postgres')
+    PG_PASSWORD = os.getenv('PG_PASSWORD', '')
+    DB_DSN = f"host={PG_HOST} port={PG_PORT} dbname={PG_DBNAME} user={PG_USER} password={PG_PASSWORD}"
 
 # Upload folders
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'bngImg')
