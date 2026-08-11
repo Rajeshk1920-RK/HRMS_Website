@@ -19,7 +19,8 @@
     {% endif %}
     {% endwith %}
 
-    <!-- Stats Cards -->
+    <div class="bg-white shadow rounded-lg border border-gray-200 p-6 sm:p-8">
+        <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
         <a href="{{ url_for('employees.view_employees') }}"
             class="block bg-white overflow-hidden shadow rounded-lg hover:bg-gray-50 transition duration-200 cursor-pointer">
@@ -216,6 +217,8 @@
                 </div>
             </div>
         </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -244,7 +247,6 @@
     document.getElementById('projectFilter').addEventListener('change', filterTasks);
     document.getElementById('statusFilter').addEventListener('change', filterTasks);
     document.getElementById('employeeFilter').addEventListener('change', filterTasks);
-
-
 </script>
+</div>
 {% endblock %}

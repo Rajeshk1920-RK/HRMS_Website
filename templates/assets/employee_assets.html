@@ -1,8 +1,12 @@
 {% extends "layouts/base.html" %}
-{% block title %}My Assets{% endblock %}
+
+{% block title %}My Assets - Project Tracking System{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto bg-white shadow rounded-lg p-6">
+<div class="w-full px-1">
+    <div class="bg-white shadow rounded-lg border border-gray-200 p-6 sm:p-8">
     <h2 class="text-2xl font-bold mb-6">My Allocated Assets</h2>
 
     {% if assets %}
@@ -20,14 +24,15 @@
         </thead>
         <tbody>
             {% for asset in assets %}
+            {% set cur_asset_id = asset.get('AssetId') or asset.get('assetid') or asset.get('allocatedid') %}
             <tr class="border-t">
-                <td class="p-2">{{ asset['ItemName'] }}</td>
-                <td class="p-2">{{ asset['Model'] }}</td>
-                <td class="p-2">{{ asset['AllocateDate'] }}</td>
-                <td class="p-2">{{ asset['AllocatedBy'] }}</td>
-                <td class="p-2">{{ asset['Description'] }}</td>
+                <td class="p-2">{{ asset.get('ItemName') or asset.get('itemname') }}</td>
+                <td class="p-2">{{ asset.get('Model') or asset.get('model') }}</td>
+                <td class="p-2">{{ asset.get('AllocateDate') or asset.get('allocatedate') }}</td>
+                <td class="p-2">{{ asset.get('AllocatedBy') or asset.get('allocatedby') }}</td>
+                <td class="p-2">{{ asset.get('Description') or asset.get('description') }}</td>
                 <td class="p-2">
-                    <button onclick="openModal({{ asset['AssetId'] }})"
+                    <button onclick="openModal({{ cur_asset_id }})"
                         class="text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700 text-sm">
                         Report Issue
                     </button>
@@ -35,16 +40,16 @@
             </tr>
 
         <!-- Show OPEN issues -->
-        {% if open_issues_by_asset.get(asset['AssetId']) %}
+        {% if cur_asset_id and open_issues_by_asset.get(cur_asset_id) %}
         <tr class="bg-yellow-50 text-sm text-yellow-800">
             <td colspan="6" class="p-2 pl-6">
                 <strong>Open Issues:</strong>
                 <ul class="list-disc ml-4 mt-1 space-y-1">
-                    {% for issue in open_issues_by_asset[asset['AssetId']] %}
+                    {% for issue in open_issues_by_asset[cur_asset_id] %}
                     <li>
-                        "{{ issue['IssueText'] }}"
-                        <span class="text-xs text-gray-600">Reported: {{ issue['ReportedDate'] }}</span>
-                        <span class="text-red-600 font-semibold ml-2">[Status: {{ issue['Status'] }}]</span>
+                        "{{ issue.get('IssueText') or issue.get('issuetext') }}"
+                        <span class="text-xs text-gray-600">Reported: {{ issue.get('ReportedDate') or issue.get('reporteddate') }}</span>
+                        <span class="text-red-600 font-semibold ml-2">[Status: {{ issue.get('Status') or issue.get('status') }}]</span>
                     </li>
                     {% endfor %}
                 </ul>
@@ -53,16 +58,16 @@
         {% endif %}
 
         <!-- Show RESOLVED issues -->
-        {% if resolved_issues_by_asset.get(asset['AssetId']) %}
+        {% if cur_asset_id and resolved_issues_by_asset.get(cur_asset_id) %}
         <tr class="bg-gray-50 text-sm text-gray-700">
             <td colspan="6" class="p-2 pl-6">
                 <strong>Resolved Issues:</strong>
                 <ul class="list-disc ml-4 mt-1 space-y-1">
-                    {% for issue in resolved_issues_by_asset[asset['AssetId']] %}
+                    {% for issue in resolved_issues_by_asset[cur_asset_id] %}
                     <li>
-                        "{{ issue['IssueText'] }}"
-                        → <em class="text-green-600">{{ issue['ResolvedComment'] }}</em>
-                        <span class="text-xs text-gray-600">({{ issue['ResolvedDate'] }})</span>
+                        "{{ issue.get('IssueText') or issue.get('issuetext') }}"
+                        → <em class="text-green-600">{{ issue.get('ResolvedComment') or issue.get('resolvedcomment') }}</em>
+                        <span class="text-xs text-gray-600">({{ issue.get('ResolvedDate') or issue.get('resolveddate') }})</span>
                     </li>
                     {% endfor %}
                 </ul>
@@ -76,6 +81,7 @@
     {% else %}
     <p class="text-gray-600">No allocated assets found.</p>
     {% endif %}
+    </div>
 </div>
 
 <!-- Modal -->

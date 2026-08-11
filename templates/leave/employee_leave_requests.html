@@ -1,6 +1,11 @@
 {% extends "layouts/base.html" %}
-{% block title %}My Leave Requests{% endblock %}
+
+{% block title %}My Leave Requests - Project Tracking System{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
+<div class="w-full px-1">
 <div class="bg-white shadow rounded-lg">
   <div class="">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -48,5 +53,6 @@
       </tbody>
     </table>
   </div>
+</div>
 </div>
 {% endblock %}

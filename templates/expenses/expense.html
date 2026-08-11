@@ -26,9 +26,10 @@
 </script>
 {% extends "layouts/base.html" %}
 
-{% block title %}Expenses{% endblock %}
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto">
+<div class="w-full px-1">
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
   <div class="mb-4">

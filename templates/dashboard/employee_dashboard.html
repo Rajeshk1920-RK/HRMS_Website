@@ -2,6 +2,8 @@
 
 {% block title %}Employee Dashboard - Project Tracking System{% endblock %}
 
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
 {% if emg_missing %}
 <div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 p-4 mb-6 rounded-md shadow-sm" role="alert">
@@ -10,37 +12,41 @@
 </div>
 {% endif %}
 
-<div class="w-full bg-white px-6 py-8">
-          {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
+<div class="w-full px-1">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
     <div class="mb-4">
-      {% for category, message in messages %}
+        {% for category, message in messages %}
         <div class="px-4 py-2 rounded text-white
                     {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-          {{ message }}
+            {{ message }}
         </div>
-      {% endfor %}
+        {% endfor %}
     </div>
-  {% endif %}
-{% endwith %}
-    <h2 class="text-3xl font-bold text-gray-800 mb-1">Welcome, {{ session.first_name.title() }}</h2>
-    <p class="text-gray-500 mb-8 text-sm">Review your current assignments and task history.</p>
+    {% endif %}
+    {% endwith %}
 
-    <div class="flex flex-wrap gap-4 mb-8">
-        <a href="{{ url_for('tasks.employee_kanban') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+    <div class="bg-white shadow rounded-lg border border-gray-200 p-6 sm:p-8">
+        <div class="mb-6">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Welcome, {{ session.first_name.title() }}</h2>
+            <p class="text-gray-500 text-sm">Review your current assignments and task history.</p>
+        </div>
+
+    <div class="flex flex-wrap gap-4 mb-6">
+        <a href="{{ url_for('tasks.employee_kanban') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition duration-150">
             <i class="fas fa-columns mr-2"></i> My Kanban Board
         </a>
-        <a href="{{ url_for('tasks.employee_reports') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+        <a href="{{ url_for('tasks.employee_reports') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition duration-150">
             <i class="fas fa-chart-pie mr-2"></i> My Reports
         </a>
     </div>
 
     <!-- Filter -->
-    <form method="GET" class="mb-8">
+    <form method="GET" class="mb-6">
         <div class="flex flex-wrap items-center gap-3">
-            <label for="status_filter" class="font-medium text-gray-700">Filter by Status:</label>
+            <label for="status_filter" class="font-medium text-gray-700 text-sm">Filter by Status:</label>
             <select name="status_filter" id="status_filter"
-                class="border border-gray-300 rounded-md px-4 py-2 text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                class="border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 onchange="this.form.submit()">
                 <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
                 <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
@@ -50,10 +56,10 @@
     </form>
 
     <!-- Today's Tasks -->
-    <div class="bg-white shadow-lg rounded-xl mb-10">
-        <div class="bg-gray-100 px-6 py-4 border-b rounded-t-xl flex items-center">
+    <div class="bg-white shadow rounded-lg mb-8 border border-gray-200">
+        <div class="bg-gray-50 px-6 py-4 border-b rounded-t-lg flex items-center">
             <i class="fa fa-calendar-alt mr-2 text-blue-600"></i>
-            <h3 class="text-xl font-semibold text-gray-800">Today's Tasks</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Today's Tasks</h3>
         </div>
         <div class="p-6">
             {% if tasks %}
@@ -113,10 +119,10 @@
     </div>
 
     <!-- Previous Tasks -->
-    <div class="bg-white shadow-lg rounded-xl">
-        <div class="bg-gray-100 px-6 py-4 border-b rounded-t-xl flex items-center">
+    <div class="bg-white shadow rounded-lg border border-gray-200">
+        <div class="bg-gray-50 px-6 py-4 border-b rounded-t-lg flex items-center">
             <i class="fa fa-archive mr-2 text-blue-600"></i>
-            <h3 class="text-xl font-semibold text-gray-800">Previous Tasks</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Previous Tasks</h3>
         </div>
         <div class="p-6">
             {% if tasks %}
@@ -174,5 +180,7 @@
             {% endif %}
         </div>
     </div>
+    </div>
 </div>
 {% endblock %}
+
