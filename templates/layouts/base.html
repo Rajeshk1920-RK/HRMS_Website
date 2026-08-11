@@ -277,7 +277,7 @@
                                                  'leave.admin_leave_requests',
                                                  'leave.admin_leave_summary'] %}
     {% set expense_active  = request.endpoint in ['expenses.admin_expense_types','expenses.expense', 'expenses.existing_expenses', 'expenses.admin_sub_expense_types'] %}
-    {% set task_active     = request.endpoint in ['tasks.add_task','tasks.view_tasks','tasks.admin_daily_tasks'] %}
+    {% set task_active     = request.endpoint in ['tasks.add_task','tasks.view_tasks'] %}
     {% set asset_active    = request.endpoint in ['assets.add_asset','assets.view_assets','assets.manage_allocation','assets.asset_history'] %}
     {% set careers_active  = request.endpoint in ['careers.add_job', 'careers.view_jobs', 'careers.employee_careers'] %}
     {% set wiki_active     = request.endpoint in ['wiki.admin_wiki_categories','wiki.add_wiki','wiki.view_wikis','wiki.edit_wiki'] %}
@@ -306,7 +306,9 @@
             <!-- nav -->
             <nav class="flex-1 overflow-y-auto py-5 space-y-1 text-sm border-r px-3">
                 {% macro navlink(label, icon, endpoint) -%}
-                    {% set active = request.endpoint == endpoint %}
+                    {% set active = (request.endpoint == endpoint) or 
+                                    (endpoint == 'tasks.admin_daily_tasks' and request.endpoint in ['tasks.admin_daily_tasks', 'tasks.admin_daily_task_details']) or
+                                    (endpoint == 'tasks.employee_daily_tasks' and request.endpoint in ['tasks.employee_daily_tasks', 'tasks.employee_daily_task_details', 'tasks.edit_daily_task']) %}
                     <a href="{{ url_for(endpoint) }}"
                        class="flex items-center px-4 py-3 rounded-xl transition-all duration-200
                               {{ 'bg-gray-100 text-black font-bold shadow-sm' if active
@@ -339,6 +341,8 @@
                            or 'employees.employee_dashboard') }}
 
                 {% if session.emp_type == 'admin' %}
+                    <!-- Daily Reports -->
+                    {{ navlink('Daily Reports','fas fa-calendar-check','tasks.admin_daily_tasks') }}
 
                     <!-- Masters -->
                     {% set masters_active = request.endpoint in ['tasks.admin_task_statuses', 'tasks.admin_employee_statuses'] %}
@@ -435,9 +439,9 @@
                         <div class="sidebar-submenu space-y-0.5">
                             {{ subnavlink('Add Task','fas fa-plus','tasks.add_task') }}
                             {{ subnavlink('View Tasks','fas fa-list','tasks.view_tasks') }}
-                            {{ subnavlink('Daily Reports','fas fa-calendar-check','tasks.admin_daily_tasks') }}
                         </div>
                     </details>
+
 
                     <!-- Assets -->
                     <details class="sidebar-accordion group" {{ 'open' if request.endpoint in ['assets.add_asset','assets.view_assets', 'assets.manage_allocation', 'assets.asset_history'] else '' }}>
