@@ -527,13 +527,19 @@
         </button>
 
         <div class="ml-auto flex items-center space-x-4">
-            {% if session.emp_type == 'emp' %}
+            {% if session.user_id %}
                 <a href="{{ url_for('employees.employee_profile_view') }}"
-                class="text-sm px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    <i class="fas fa-user-circle mr-1"></i>My Profile
+                class="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-all">
+                    {% if session.profile_photo %}
+                        <img src="{{ url_for('static', filename=session.profile_photo.replace('static/', '', 1)) }}" 
+                             alt="Avatar" class="h-6 w-6 rounded-full object-cover border border-white/50" />
+                    {% else %}
+                        <i class="fas fa-user-circle text-base"></i>
+                    {% endif %}
+                    <span>My Profile</span>
                 </a>
             {% endif %}
-            <span class="hidden sm:block text-sm text-gray-700">
+            <span class="hidden sm:inline-flex items-center gap-2 text-sm text-gray-700 font-medium">
                 {{ session.first_name.title() }} {{ session.last_name.title() }} ({{ session.emp_type.title() }})
             </span>
             <button id="logoutButton"

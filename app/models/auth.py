@@ -8,7 +8,7 @@ class AuthMixin:
         hashed_password = self.hash_password(password)
 
         cursor.execute('''
-            SELECT emp_id, first_name, last_name, emp_type, status
+            SELECT emp_id, first_name, last_name, emp_type, status, profile_photo
             FROM tbl_employee
             WHERE email = %s AND password = %s AND status != 'inactive'
         ''', (email, hashed_password))

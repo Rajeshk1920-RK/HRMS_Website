@@ -220,48 +220,57 @@ def employee_dashboard():
 
 @employees_bp.route('/employee/my_profile', methods=['GET', 'POST'])
 def employee_profile_view():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
     emp_id = session['user_id']
     employee = db.get_employee(emp_id)
     profile = db.get_employee_profile(emp_id)
-    alert_msg = None  # This will be passed as a flash or query param
+    work_hours = db.get_employee_work_hours(emp_id)
 
     if request.method == 'POST':
-        new_password = request.form.get('password', '').strip()
-        new_emg = request.form.get('EmgContact', '').strip()
+        import os
+        from werkzeug.utils import secure_filename
+        from datetime import datetime
 
-        alert_msg = db.update_employee_password_and_emgcontact(emp_id, new_password, new_emg)
-        # if new_password:
-        #     db.update_employee_password(emp_id, new_password)
-        #     alert_msg = 'Password updated successfully.'
+        data = {
+            'first_name': request.form.get('first_name', '').strip(),
+            'last_name': request.form.get('last_name', '').strip(),
+            'phone_no': request.form.get('phone_no', '').strip(),
+            'email': request.form.get('email', '').strip(),
+            'gender': request.form.get('gender', '').strip(),
+            'dob': request.form.get('dob', '').strip(),
+            'address': request.form.get('address', '').strip(),
+            'password': request.form.get('password', '').strip(),
+            'EmgContact': request.form.get('EmgContact', '').strip(),
+            'profile_photo': None
+        }
 
-        # if profile:
-        #     current_emg = profile.get('EmgContact', '')
-        #     already_updated = profile.get('EmgUpdatedByEmp', 0)
+        # Check for profile photo upload
+        file = request.files.get('profile_photo')
+        if file and file.filename:
+            from app.config import PROFILE_PHOTO_FOLDER
+            filename = secure_filename(f"{emp_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+            file_path = os.path.join(PROFILE_PHOTO_FOLDER, filename)
+            file.save(file_path)
+            data['profile_photo'] = f"static/profile_photos/{filename}"
 
-        #     if new_emg:
-        #         if already_updated:
-        #             alert_msg = 'You have already updated your emergency contact once.'
-        #         if not new_emg.isdigit() or len(new_emg) != 10:
-        #             alert_msg = 'Emergency contact must be a 10-digit number.'
-        #         elif new_emg == employee[6]:  # assuming employee[6] is mobile number
-        #             alert_msg = 'Emergency contact cannot be the same as your mobile number.'
-        #         else:
-        #             updated = db.update_employee_emg_contact_once(emp_id, new_emg)
-        #             if updated:
-        #                 alert_msg = 'Emergency contact updated successfully.'
-        #             else:
-        #                 alert_msg = 'Update failed. Please contact admin.'
-        #     else:
-        #         alert_msg = 'Emergency contact cannot be blank.'
+        try:
+            db.update_employee_self(emp_id, data)
+            
+            # Immediately update the session names to reflect in layouts
+            session['first_name'] = data['first_name'].title()
+            session['last_name'] = data['last_name'].title()
+            if data['profile_photo']:
+                session['profile_photo'] = data['profile_photo']
+            
+            flash('Profile updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error updating profile: {str(e)}', 'error')
 
-        # Flash message or pass via query string for dashboard
-        flash(alert_msg)  # Requires flash setup in app
-        return redirect(url_for('employees.employee_dashboard'))
+        return redirect(url_for('employees.employee_profile_view'))
 
-    return render_template('employees/my_profile.html', employee=employee, profile=profile, alert_msg=alert_msg)
+    return render_template('employees/my_profile.html', employee=employee, profile=profile, work_hours=work_hours)
 
 @employees_bp.route('/admin/employee_profile/<int:emp_id>', methods=['GET', 'POST'])
 def manage_profile(emp_id):
@@ -274,33 +283,48 @@ def manage_profile(emp_id):
         return redirect(url_for('employees.view_employees'))
 
     profile = db.get_employee_profile(emp_id)
+    work_hours = db.get_employee_work_hours(emp_id)
 
     if request.method == 'POST':
+        import os
+        from werkzeug.utils import secure_filename
+        from datetime import datetime
+
         data = {
             'EmployeeId': emp_id,
-            'UANNo': request.form['UANNo'],
-            'PANNO': request.form['PANNO'],
-            'AadharNo': request.form['AadharNo'],
-            'BankName': request.form['BankName'],
-            'BranchName': request.form['BranchName'],
-            'ACNo': request.form['ACNo'],
-            'IFSCode': request.form['IFSCode'],
-            'Designation': request.form['Designation'],
-            'EmgContact': request.form['EmgContact'],
-            'ReportingMng': request.form['ReportingMng'],
-            'DOJ': request.form['DOJ'],
-            'PrgLng': request.form['PrgLng'],
-            'FrmWrk': request.form['FrmWrk']
+            'UANNo': request.form.get('UANNo', '').strip(),
+            'PANNO': request.form.get('PANNO', '').strip(),
+            'AadharNo': request.form.get('AadharNo', '').strip(),
+            'BankName': request.form.get('BankName', '').strip(),
+            'BranchName': request.form.get('BranchName', '').strip(),
+            'ACNo': request.form.get('ACNo', '').strip(),
+            'IFSCode': request.form.get('IFSCode', '').strip(),
+            'Designation': request.form.get('Designation', '').strip(),
+            'EmgContact': request.form.get('EmgContact', '').strip(),
+            'ReportingMng': request.form.get('ReportingMng', '').strip(),
+            'DOJ': request.form.get('DOJ', '').strip() or None,
+            'PrgLng': request.form.get('PrgLng', '').strip(),
+            'FrmWrk': request.form.get('FrmWrk', '').strip()
         }
+        
+        # Check if photo was uploaded
+        file = request.files.get('profile_photo')
+        if file and file.filename:
+            from app.config import PROFILE_PHOTO_FOLDER
+            filename = secure_filename(f"{emp_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}")
+            file_path = os.path.join(PROFILE_PHOTO_FOLDER, filename)
+            file.save(file_path)
+            db.update_employee_profile_photo(emp_id, f"static/profile_photos/{filename}")
+
         if profile:
             db.update_employee_profile(emp_id, data)
         else:
             db.add_employee_profile(data)
-        flash("Profile saved", "success")
+            
+        flash("Employee profile saved successfully!", "success")
         return redirect(url_for('employees.view_employees'))
 
-
-    return render_template('employees/employee_profile.html', employee=employee, profile=profile)
+    return render_template('employees/employee_profile.html', employee=employee, profile=profile, work_hours=work_hours)
 
 @employees_bp.route('/admin/quick_delete', methods=['GET'])
 def admin_quick_delete():

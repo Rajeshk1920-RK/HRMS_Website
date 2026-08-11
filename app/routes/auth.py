@@ -101,6 +101,7 @@ def login():
             session['first_name'] = user[1].title() if user[1] else ''
             session['last_name'] = user[2].title() if user[2] else ''
             session['emp_type'] = user[3]
+            session['profile_photo'] = user[5] if user[5] else None
 
             if user[3] == 'admin':
                 return redirect(url_for('employees.admin_dashboard'))

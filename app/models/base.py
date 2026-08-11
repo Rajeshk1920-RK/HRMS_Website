@@ -200,6 +200,8 @@ class DatabaseBase:
 
         cursor.execute('ALTER TABLE tbl_expenses ADD COLUMN IF NOT EXISTS expense_by TEXT')
 
+        cursor.execute('ALTER TABLE tbl_employee ADD COLUMN IF NOT EXISTS profile_photo TEXT')
+
                 # ------------------ Wiki Category --------------------------------
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS TblWikiCategory (
