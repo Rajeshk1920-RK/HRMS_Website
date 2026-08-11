@@ -216,7 +216,11 @@ def employee_dashboard():
     status_filter = request.args.get('status_filter', 'all')
     tasks = db.get_tasks_by_employee(session['user_id'], status_filter=status_filter)
     today = date.today()  # Get current date
-    return render_template('dashboard/employee_dashboard.html', tasks=tasks, emg_missing=emg_missing, status_filter=status_filter, today=today)
+    approved_leaves = db.get_leave_requests(
+        'WHERE lr.employee_id=%s AND lr.status=%s AND lr.end_date >= %s',
+        (session['user_id'], 'approved', today)
+    )
+    return render_template('dashboard/employee_dashboard.html', tasks=tasks, emg_missing=emg_missing, status_filter=status_filter, today=today, approved_leaves=approved_leaves)
 
 @employees_bp.route('/employee/my_profile', methods=['GET', 'POST'])
 def employee_profile_view():
