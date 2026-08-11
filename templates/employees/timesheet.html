@@ -1,0 +1,480 @@
+{% extends "layouts/base.html" %}
+{% block title %}Timesheet Calendar{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+<style>
+    .calendar-cell {
+        min-height: 100px;
+        transition: all 0.2s ease;
+    }
+    .calendar-cell:hover:not(.empty-cell) {
+        background-color: #f3f4f6;
+        cursor: pointer;
+        transform: scale(1.01);
+    }
+    .status-dot {
+        height: 8px;
+        width: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .dot-present { background-color: #10b981; } /* Green */
+    .dot-leave { background-color: #3b82f6; } /* Blue */
+    .dot-holiday { background-color: #f59e0b; } /* Orange */
+    .dot-absent { background-color: #ef4444; } /* Red */
+    .dot-weekly_off { background-color: #9ca3af; } /* Grey */
+    .dot-multiple_events { background-color: #eab308; } /* Yellow */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    
+    <!-- Top Row: Employee Title and Month Navigator -->
+    <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-800">Timesheet</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Viewing calendar for: <span class="font-bold text-gray-700">{{ employee[1] }} {{ employee[2] }}</span> ({{ employee[9].upper() }})
+            </p>
+        </div>
+        
+        <!-- Controls -->
+        <div class="flex items-center gap-3">
+            <div class="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+                <button onclick="changeMonth(-1)" class="p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="current-month-label" class="px-4 py-2 font-bold text-gray-700 min-w-[140px] text-center">
+                    August 2026
+                </span>
+                <button onclick="changeMonth(1)" class="p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <button onclick="loadTimesheetData()" class="p-2 border border-gray-300 bg-white hover:bg-gray-50 rounded-lg text-gray-600">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Legends Card -->
+    <div class="bg-white border border-gray-200 rounded-xl p-4 mb-6 shadow-sm flex flex-wrap gap-6 text-sm text-gray-600 font-medium">
+        <div class="flex items-center gap-2">
+            <span class="status-dot dot-present"></span>
+            <span>Present</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="status-dot dot-leave"></span>
+            <span>Leave</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="status-dot dot-holiday"></span>
+            <span>Holidays</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="status-dot dot-absent"></span>
+            <span>Absent</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="status-dot dot-weekly_off"></span>
+            <span>Weekly Off</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="status-dot dot-multiple_events"></span>
+            <span>Multiple Events</span>
+        </div>
+    </div>
+
+    <!-- Calendar Card -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 bg-gray-50 border-b border-gray-200 text-center py-3 text-sm font-bold text-gray-700 uppercase tracking-wider">
+            <div>Sunday</div>
+            <div>Monday</div>
+            <div>Tuesday</div>
+            <div>Wednesday</div>
+            <div>Thursday</div>
+            <div>Friday</div>
+            <div>Saturday</div>
+        </div>
+
+        <!-- Days Grid -->
+        <div id="calendar-grid" class="grid grid-cols-7 divide-x divide-y divide-gray-200">
+            <!-- Rendered dynamically by JS -->
+        </div>
+    </div>
+</div>
+
+<!-- ==============================================
+     MODAL 1: Click Choice Popover
+     ============================================== -->
+<div id="choice-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeChoiceModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-200 transform transition-all scale-95 duration-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 id="choice-date-label" class="text-xl font-bold text-gray-800">Aug 10, 2026</h3>
+            <button onclick="closeChoiceModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        </div>
+        
+        <p class="text-sm font-medium text-gray-500 mb-4">Apply Leave or Regularization for Above date?</p>
+        
+        <div class="space-y-4">
+            <select id="action-select" onchange="handleActionSelect(this)" class="w-full border border-gray-300 rounded-lg p-3 text-gray-700 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                <option value="">-select-</option>
+                <option value="leave">Leave Request</option>
+                <option value="regularise">Attendance Regularisation</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ==============================================
+     MODAL 2: Leave Request Modal
+     ============================================== -->
+<div id="leave-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeLeaveModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 border border-gray-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Leave Request</h3>
+            <button onclick="closeLeaveModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <form id="leave-form" method="POST" class="space-y-5">
+            <input type="hidden" name="action" value="leave">
+            <input type="hidden" name="start_date" id="leave-start-date">
+            <input type="hidden" name="end_date" id="leave-end-date">
+
+            <!-- Employee Name -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Employee Name*</label>
+                <input type="text" readonly value="{{ employee[1] }} {{ employee[2] }}" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-600 font-medium cursor-not-allowed outline-none" />
+            </div>
+
+            <!-- Leave Type & Period -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Leave Type*</label>
+                    <select name="leave_type_id" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20">
+                        <option value="" disabled selected>-- Select Leave Type --</option>
+                        {% for lt in leave_types %}
+                            <option value="{{ lt[0] }}">{{ lt[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Day Period*</label>
+                    <select name="day_period" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20">
+                        <option value="Full Day">Full Day</option>
+                        <option value="First Half">First Half</option>
+                        <option value="Second Half">Second Half</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Phone Number</label>
+                <input type="text" name="phone_no" placeholder="Enter contact number" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20" />
+            </div>
+
+            <!-- Notify Employees -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Employees to be notified</label>
+                <input type="text" name="notify_emails" placeholder="Enter emails or names to notify" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20" />
+            </div>
+
+            <!-- Reason -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Reason*</label>
+                    <span id="char-counter" class="text-xs text-gray-400">0 / 250</span>
+                </div>
+                <textarea name="leave_desc" id="leave_desc" rows="3" required maxlength="250" oninput="updateCharCount(this)" placeholder="Explain the reason for leave" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="clearLeaveForm()" class="px-4 py-2 border border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg text-sm font-semibold transition">
+                    Clear Data
+                </button>
+                <button type="button" onclick="closeLeaveModal()" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-semibold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition shadow-sm">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==============================================
+     MODAL 3: Regularisation Modal (Log Task)
+     ============================================== -->
+<div id="regularise-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeRegulariseModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 border border-gray-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Attendance Regularisation</h3>
+            <button onclick="closeRegulariseModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <form id="regularise-form" method="POST" class="space-y-5">
+            <input type="hidden" name="action" value="regularise">
+            <input type="hidden" name="task_date" id="regularise-task-date">
+
+            <!-- Pre-filled Date -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Date to Log*</label>
+                <input type="text" id="regularise-date-label" readonly class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-600 font-medium cursor-not-allowed outline-none" />
+            </div>
+
+            <!-- Task Title and Hours -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Task Title*</label>
+                    <input type="text" name="task_title" required placeholder="Enter task title" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Hours Logged*</label>
+                    <input type="number" name="task_hours" min="1" max="24" required placeholder="Number of hours" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20" />
+                </div>
+            </div>
+
+            <!-- Project Status / Task status -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Project Status*</label>
+                <select name="project_status" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20">
+                    <option value="" disabled selected>-- Select Status --</option>
+                    {% for status in task_statuses %}
+                        <option value="{{ status[1] }}">{{ status[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Task Description -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Task Description*</label>
+                <textarea name="task_desc" rows="4" required placeholder="Describe task details, accomplishments, or notes" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500/20"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeRegulariseModal()" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-semibold transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition shadow-sm">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Selected Date values state
+    let currentYear = Number("{{ year }}");
+    let currentMonth = Number("{{ month }}");
+    let selectedDateISO = "";
+    const employeeId = Number("{{ emp_id }}");
+
+    const monthsNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTimesheetData();
+    });
+
+    // Fetch calendar events and build the days grid
+    function loadTimesheetData() {
+        const grid = document.getElementById("calendar-grid");
+        const monthLabel = document.getElementById("current-month-label");
+        
+        monthLabel.textContent = `${monthsNames[currentMonth - 1]} ${currentYear}`;
+        grid.innerHTML = '<div class="col-span-7 py-12 text-center text-gray-400 font-medium">Loading Timesheet data...</div>';
+
+        fetch(`/api/timesheet_data/${employeeId}?year=${currentYear}&month=${currentMonth}`)
+            .then(res => res.json())
+            .then(data => {
+                renderCalendar(data);
+            })
+            .catch(err => {
+                grid.innerHTML = '<div class="col-span-7 py-12 text-center text-red-500 font-semibold">Failed to load timesheet.</div>';
+                console.error(err);
+            });
+    }
+
+    // Build the grid layout using vanilla JavaScript
+    function renderCalendar(eventsData) {
+        const grid = document.getElementById("calendar-grid");
+        grid.innerHTML = "";
+
+        // First day of current month
+        const firstDayDate = new Date(currentYear, currentMonth - 1, 1);
+        const startDayIndex = firstDayDate.getDay(); // 0=Sun, 1=Mon, etc.
+        
+        // Days count in current month
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+        // Render empty cells for leading weekday padding
+        for (let i = 0; i < startDayIndex; i++) {
+            const emptyCell = document.createElement("div");
+            emptyCell.className = "calendar-cell empty-cell bg-gray-50 border-r border-b border-gray-100";
+            grid.appendChild(emptyCell);
+        }
+
+        // Render day cells
+        for (let day = 1; day <= daysInMonth; day++) {
+            const cell = document.createElement("div");
+            cell.className = "calendar-cell bg-white border-r border-b border-gray-200 p-3 flex flex-col justify-between relative group";
+            
+            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const eventInfo = eventsData[dateStr] || { status: 'absent', hours: 0, description: '' };
+            
+            // Day Number
+            const dayNum = document.createElement("span");
+            dayNum.className = `text-sm font-bold ${isToday(currentYear, currentMonth, day) ? 'bg-blue-600 text-white h-6 w-6 rounded-full inline-flex items-center justify-center shadow-sm' : 'text-gray-700'}`;
+            dayNum.textContent = day;
+
+            // Hours logged
+            const hoursLabel = document.createElement("div");
+            hoursLabel.className = "text-xs font-semibold text-gray-500 mt-2";
+            if (eventInfo.hours > 0) {
+                hoursLabel.textContent = `${String(eventInfo.hours).padStart(2, '0')}:00 Hrs`;
+            }
+
+            // Dot Row
+            const dotRow = document.createElement("div");
+            dotRow.className = "flex items-center gap-1.5 mt-4";
+            
+            const dot = document.createElement("span");
+            dot.className = `status-dot dot-${eventInfo.status}`;
+            dotRow.appendChild(dot);
+
+            if (eventInfo.description) {
+                cell.setAttribute("title", eventInfo.description);
+            }
+
+            cell.appendChild(dayNum);
+            cell.appendChild(hoursLabel);
+            cell.appendChild(dotRow);
+
+            // Click listener
+            cell.addEventListener("click", () => {
+                openChoiceModal(dateStr, day);
+            });
+
+            grid.appendChild(cell);
+        }
+
+        // Pad trailing cells to maintain grid balance
+        const totalRendered = startDayIndex + daysInMonth;
+        const trailingCells = (7 - (totalRendered % 7)) % 7;
+        for (let i = 0; i < trailingCells; i++) {
+            const emptyCell = document.createElement("div");
+            emptyCell.className = "calendar-cell empty-cell bg-gray-50 border-r border-b border-gray-100";
+            grid.appendChild(emptyCell);
+        }
+    }
+
+    // Helper: Is date today?
+    function isToday(year, month, day) {
+        const today = new Date();
+        return today.getFullYear() === year && today.getMonth() === (month - 1) && today.getDate() === day;
+    }
+
+    // Adjust month index and reload
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if (currentMonth > 12) {
+            currentMonth = 1;
+            currentYear++;
+        } else if (currentMonth < 1) {
+            currentMonth = 12;
+            currentYear--;
+        }
+        loadTimesheetData();
+    }
+
+    // CHOICE MODAL MANAGEMENT
+    function openChoiceModal(dateStr, dayNum) {
+        selectedDateISO = dateStr;
+        const formattedDate = new Date(currentYear, currentMonth - 1, dayNum).toLocaleDateString("en-US", {
+            month: 'short', day: 'numeric', year: 'numeric'
+        });
+        
+        document.getElementById("choice-date-label").textContent = formattedDate;
+        document.getElementById("action-select").value = "";
+        
+        const modal = document.getElementById("choice-modal");
+        modal.classList.remove("hidden");
+    }
+
+    function closeChoiceModal() {
+        document.getElementById("choice-modal").classList.add("hidden");
+    }
+
+    function handleActionSelect(select) {
+        const val = select.value;
+        closeChoiceModal();
+        if (val === 'leave') {
+            openLeaveModal();
+        } else if (val === 'regularise') {
+            openRegulariseModal();
+        }
+    }
+
+    // LEAVE FORM MODAL
+    function openLeaveModal() {
+        document.getElementById("leave-start-date").value = selectedDateISO;
+        document.getElementById("leave-end-date").value = selectedDateISO;
+        clearLeaveForm();
+
+        const modal = document.getElementById("leave-modal");
+        modal.classList.remove("hidden");
+    }
+
+    function closeLeaveModal() {
+        document.getElementById("leave-modal").classList.add("hidden");
+    }
+
+    function clearLeaveForm() {
+        document.getElementById("leave_desc").value = "";
+        updateCharCount(document.getElementById("leave_desc"));
+        document.querySelector("input[name='phone_no']").value = "";
+        document.querySelector("input[name='notify_emails']").value = "";
+    }
+
+    function updateCharCount(textarea) {
+        const counter = document.getElementById("char-counter");
+        counter.textContent = `${textarea.value.length} / 250`;
+    }
+
+    // REGULARISATION MODAL
+    function openRegulariseModal() {
+        const parts = selectedDateISO.split('-');
+        const formatted = new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString("en-US", {
+            month: 'long', day: 'numeric', year: 'numeric'
+        });
+        
+        document.getElementById("regularise-date-label").value = formatted;
+        document.getElementById("regularise-task-date").value = selectedDateISO;
+        
+        // Reset form
+        document.getElementById("regularise-form").reset();
+
+        const modal = document.getElementById("regularise-modal");
+        modal.classList.remove("hidden");
+    }
+
+    function closeRegulariseModal() {
+        document.getElementById("regularise-modal").classList.add("hidden");
+    }
+</script>
+{% endblock %}

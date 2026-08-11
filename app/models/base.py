@@ -124,6 +124,18 @@ class DatabaseBase:
                 inserted_date  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Seed default leave types
+        cursor.execute("SELECT COUNT(*) FROM tbl_leave_type")
+        if cursor.fetchone()[0] == 0:
+            default_leave_types = [
+                ("Casual Leave",),
+                ("Sick Leave",),
+                ("Privilege Leave",),
+                ("Loss of Pay",)
+            ]
+            cursor.executemany("INSERT INTO tbl_leave_type (leave_type) VALUES (%s)", default_leave_types)
+            conn.commit()
 
         # -- Leave requests -----------------------------------
         cursor.execute('''
@@ -201,6 +213,10 @@ class DatabaseBase:
         cursor.execute('ALTER TABLE tbl_expenses ADD COLUMN IF NOT EXISTS expense_by TEXT')
 
         cursor.execute('ALTER TABLE tbl_employee ADD COLUMN IF NOT EXISTS profile_photo TEXT')
+
+        cursor.execute('ALTER TABLE tbl_leave_request ADD COLUMN IF NOT EXISTS day_period TEXT')
+        cursor.execute('ALTER TABLE tbl_leave_request ADD COLUMN IF NOT EXISTS phone_no TEXT')
+        cursor.execute('ALTER TABLE tbl_leave_request ADD COLUMN IF NOT EXISTS notify_emails TEXT')
 
                 # ------------------ Wiki Category --------------------------------
         cursor.execute('''

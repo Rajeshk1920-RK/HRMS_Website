@@ -209,6 +209,7 @@
             }
         }
     </script>
+    {% block head %}{% endblock %}
 </head>
 
 <body class="bg-gray-100 antialiased">
@@ -439,6 +440,7 @@
                         <div class="sidebar-submenu space-y-0.5">
                             {{ subnavlink('Add Task','fas fa-plus','tasks.add_task') }}
                             {{ subnavlink('View Tasks','fas fa-list','tasks.view_tasks') }}
+                            {{ subnavlink('Timesheet','fas fa-calendar-alt','employees.timesheet') }}
                         </div>
                     </details>
 
@@ -500,6 +502,7 @@
                     {% set disabled = '' %}
                     <div>
                         {{ navlink('Daily Tasks','fas fa-calendar-check','tasks.employee_daily_tasks') }}
+                        {{ navlink('Timesheet','fas fa-calendar-alt','employees.timesheet') }}
                         {{ navlink('Manage Expense','fas fa-money-bill-wave','expenses.expense') }}
                         {{ navlink('My Expense','fas fa-list','expenses.existing_expenses') }}
                         {{ navlink('Travel Policy','fas fa-plane-departure','expenses.travel_policy') }}
