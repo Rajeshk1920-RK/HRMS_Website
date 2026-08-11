@@ -69,7 +69,7 @@
                 </p>
             </div>
             {% else %}
-            <form method="POST" class="space-y-6">
+            <form method="POST" id="editDailyTaskForm" class="space-y-6">
                 <!-- Task Title -->
                 <div>
                     <input type="text" name="task_title" id="task_title" value="{{ task[2] }}" required
@@ -79,9 +79,31 @@
 
                 <!-- Task Description -->
                 <div>
-                    <textarea name="task_desc" id="task_desc" rows="6" required
-                        class="block w-full px-4 py-3.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition"
-                        placeholder="Task Description">{{ task[3] }}</textarea>
+                    <label for="task_desc" class="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
+                    <!-- Quill toolbar -->
+                    <div id="quill-toolbar" class="border border-gray-300 rounded-t-lg bg-gray-50">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                            <button class="ql-strike"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-blockquote"></button>
+                            <button class="ql-code-block"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-clean"></button>
+                        </span>
+                    </div>
+                    <!-- hidden textarea submitted to server -->
+                    <textarea name="task_desc" id="task_desc" style="display:none">{{ task[3] }}</textarea>
+                    <!-- Quill editor -->
+                    <div id="quill-editor" class="block w-full border border-t-0 border-gray-300 rounded-b-lg text-gray-900 focus:outline-none text-base bg-white" style="height: 200px;"></div>
                 </div>
 
                 <!-- Project Status -->
@@ -118,4 +140,36 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Quill Editor
+        const quill = new Quill('#quill-editor', {
+            theme: 'snow',
+            placeholder: 'Task Description',
+            modules: {
+                toolbar: '#quill-toolbar'
+            }
+        });
+
+        // Load existing content into Quill
+        const initialContent = document.getElementById('task_desc').value;
+        quill.root.innerHTML = initialContent;
+
+        // Form submission handling
+        const form = document.getElementById('editDailyTaskForm');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const description = quill.root.innerHTML;
+                const textContent = quill.getText().trim();
+                if (!textContent) {
+                    alert('Please enter a task description.');
+                    e.preventDefault();
+                    return;
+                }
+                document.getElementById('task_desc').value = description;
+            });
+        }
+    });
+</script>
 {% endblock %}
