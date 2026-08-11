@@ -1,5 +1,9 @@
 {% extends "layouts/base.html" %}
-{% block title %}Manage Sub-Expense Types{% endblock %}
+
+{% block title %}Manage Sub-Expense Types - Admin Dashboard{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
 
 {% if popup_message %}
@@ -18,7 +22,7 @@
 </script>
 {% endif %}
 
-<div class="max-w-6xl mx-auto">
+<div class="w-full px-1">
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Manage Sub-Expense Types</h1>
     
     <!-- Add/Edit Form -->

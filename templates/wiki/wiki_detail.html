@@ -1,5 +1,9 @@
 {% extends "layouts/base.html" %}
+
 {% block title %}{{ page[2] }}{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
 <!-- Highlight.js for code syntax -->
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
@@ -26,7 +30,8 @@
   });
 </script>
 
-<div class="max-w-3xl mx-auto bg-white shadow rounded-lg p-6 space-y-6">
+<div class="w-full px-1">
+  <div class="bg-white shadow rounded-lg p-6 space-y-6">
   <h1 class="text-3xl font-bold">{{ page[2] }}</h1>
   {% if page[4] %}
   <img src="{{ url_for('static', filename='wikiCatImg/' ~ page[4]) }}"
@@ -40,5 +45,6 @@
      class="mt-6 inline-block text-primary hover:underline">
     ← Back to All Wikis
   </a>
+  </div>
 </div>
 {% endblock %}

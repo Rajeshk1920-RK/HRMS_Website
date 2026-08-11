@@ -1,7 +1,11 @@
 {% extends "layouts/base.html" %}
-{% block title %}Allocate Asset{% endblock %}
+
+{% block title %}Allocate Asset - Admin Dashboard{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto bg-white shadow rounded-lg p-6">
+<div class="w-full px-1">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="mb-4">
