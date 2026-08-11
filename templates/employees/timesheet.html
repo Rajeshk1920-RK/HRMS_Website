@@ -277,10 +277,10 @@
 
 <script>
     // Selected Date values state
-    let currentYear = {{ year }};
-    let currentMonth = {{ month }};
+    let currentYear = Number("{{ year }}");
+    let currentMonth = Number("{{ month }}");
     let selectedDateISO = "";
-    const employeeId = {{ emp_id }};
+    const employeeId = Number("{{ emp_id }}");
 
     const monthsNames = [
         "January", "February", "March", "April", "May", "June",
