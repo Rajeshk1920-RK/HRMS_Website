@@ -633,13 +633,19 @@ class TaskMixin:
         return data
 
     # ---------- DAILY TASKS ----------
-    def add_daily_task(self, emp_id, title, desc, project_status, task_hours):
+    def add_daily_task(self, emp_id, title, desc, project_status, task_hours, task_date=None):
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO tbl_daily_task (emp_id, task_title, task_desc, project_status, task_hours)
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (emp_id, title, desc, project_status, task_hours))
+        if task_date:
+            cursor.execute('''
+                INSERT INTO tbl_daily_task (emp_id, task_title, task_desc, project_status, task_hours, inserted_date)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (emp_id, title, desc, project_status, task_hours, f"{task_date} 12:00:00"))
+        else:
+            cursor.execute('''
+                INSERT INTO tbl_daily_task (emp_id, task_title, task_desc, project_status, task_hours)
+                VALUES (%s, %s, %s, %s, %s)
+            ''', (emp_id, title, desc, project_status, task_hours))
         conn.commit()
         conn.close()
 

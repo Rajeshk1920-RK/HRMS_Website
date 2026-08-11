@@ -46,10 +46,11 @@ class LeaveMixin:
                 c.execute('''
                     INSERT INTO tbl_leave_request
                     (leave_type_id, employee_id, start_date, end_date,
-                    leave_desc, manager_id)
-                    VALUES (%s,%s,%s,%s,%s,%s)
+                    leave_desc, manager_id, day_period, phone_no, notify_emails)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ''', (data['leave_type_id'], data['employee_id'], data['start_date'],
-                    data['end_date'], data['leave_desc'], data['manager_id']))
+                    data['end_date'], data['leave_desc'], data['manager_id'],
+                    data.get('day_period'), data.get('phone_no'), data.get('notify_emails')))
 
     def get_leave_requests(self, where='', params=()):
         with self.get_connection() as conn:
@@ -57,7 +58,8 @@ class LeaveMixin:
                 base = '''
                     SELECT lr.request_id, lt.leave_type, e.first_name || ' ' || e.last_name,
                         lr.start_date, lr.end_date, lr.leave_desc,
-                        lr.status, lr.comments, lr.inserted_date
+                        lr.status, lr.comments, lr.inserted_date,
+                        lr.day_period, lr.phone_no, lr.notify_emails
                     FROM tbl_leave_request lr
                     JOIN tbl_leave_type lt ON lt.leave_type_id = lr.leave_type_id
                     JOIN tbl_employee e ON e.emp_id = lr.employee_id
@@ -103,7 +105,8 @@ class LeaveMixin:
                 base = '''
                     SELECT lr.request_id, lt.leave_type, e.first_name || ' ' || e.last_name,
                         lr.start_date, lr.end_date, lr.leave_desc,
-                        lr.status, lr.comments, lr.inserted_date
+                        lr.status, lr.comments, lr.inserted_date,
+                        lr.day_period, lr.phone_no, lr.notify_emails
                     FROM tbl_leave_request lr
                     JOIN tbl_leave_type lt ON lt.leave_type_id = lr.leave_type_id
                     JOIN tbl_employee e ON e.emp_id = lr.employee_id
