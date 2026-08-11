@@ -32,6 +32,7 @@ DB_DSN = f"host={PG_HOST} port={PG_PORT} dbname={PG_DBNAME} user={PG_USER} passw
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'bngImg')
 INVOICE_FOLDER = os.path.join(BASE_DIR, 'static', 'invoices')
 WIKI_CAT_FOLDER = os.path.join(BASE_DIR, 'static', 'wikiCatImg')
+PROFILE_PHOTO_FOLDER = os.path.join(BASE_DIR, 'static', 'profile_photos')
 
 # Excel template used for expense reports
 EXPENSE_TEMPLATE_PATH = os.path.join(BASE_DIR, 'Expense-Details.xlsx')

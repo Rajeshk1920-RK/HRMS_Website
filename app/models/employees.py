@@ -74,7 +74,7 @@ class EmployeeMixin:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT emp_id, first_name, last_name, gender, dob, address, phone_no, email, status, emp_type, department, password
+            SELECT emp_id, first_name, last_name, gender, dob, address, phone_no, email, status, emp_type, department, password, profile_photo
             FROM tbl_employee
             WHERE emp_id = %s
         ''', (emp_id,))
@@ -88,7 +88,7 @@ class EmployeeMixin:
         cursor = conn.cursor()
 
         query = '''
-            SELECT emp_id, first_name, last_name, gender, dob, address, phone_no, email, status, emp_type, inserted_date, password, department
+            SELECT emp_id, first_name, last_name, gender, dob, address, phone_no, email, status, emp_type, inserted_date, password, department, profile_photo
             FROM tbl_employee
         '''
         params = []
@@ -249,3 +249,90 @@ class EmployeeMixin:
                 WHERE EmployeeId = %s AND EmgUpdatedByEmp = 0
             ''', (new_emg, emp_id))
             return cursor.rowcount > 0
+
+    def update_employee_profile_photo(self, emp_id, photo_path):
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute('UPDATE tbl_employee SET profile_photo = %s WHERE emp_id = %s', (photo_path, emp_id))
+            conn.commit()
+
+    def update_employee_self(self, emp_id, data):
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                # Update tbl_employee fields
+                if data.get('password'):
+                    hashed = self.hash_password(data['password'])
+                    cursor.execute('''
+                        UPDATE tbl_employee
+                        SET first_name = %s, last_name = %s, gender = %s, dob = %s, address = %s,
+                            phone_no = %s, email = %s, password = %s
+                        WHERE emp_id = %s
+                    ''', (data['first_name'], data['last_name'], data['gender'], data['dob'],
+                          data['address'], data['phone_no'], data['email'], hashed, emp_id))
+                else:
+                    cursor.execute('''
+                        UPDATE tbl_employee
+                        SET first_name = %s, last_name = %s, gender = %s, dob = %s, address = %s,
+                            phone_no = %s, email = %s
+                        WHERE emp_id = %s
+                    ''', (data['first_name'], data['last_name'], data['gender'], data['dob'],
+                          data['address'], data['phone_no'], data['email'], emp_id))
+
+                # Update profile photo if provided
+                if data.get('profile_photo'):
+                    cursor.execute('UPDATE tbl_employee SET profile_photo = %s WHERE emp_id = %s', (data['profile_photo'], emp_id))
+
+                # Check if profile exists, if not, create it
+                cursor.execute("SELECT COUNT(*) FROM TblEmployeeProfile WHERE EmployeeId = %s", (emp_id,))
+                if cursor.fetchone()[0] == 0:
+                    cursor.execute("INSERT INTO TblEmployeeProfile (EmployeeId, EmgUpdatedByEmp) VALUES (%s, 0)", (emp_id,))
+
+                # Update emergency contact in profile
+                if data.get('EmgContact'):
+                    cursor.execute("SELECT EmgUpdatedByEmp FROM TblEmployeeProfile WHERE EmployeeId = %s", (emp_id,))
+                    already_updated = cursor.fetchone()[0]
+                    
+                    cursor.execute("SELECT emp_type FROM tbl_employee WHERE emp_id = %s", (emp_id,))
+                    emp_type = cursor.fetchone()[0]
+
+                    if emp_type == 'admin' or already_updated == 0:
+                        new_updated_val = 1 if emp_type != 'admin' else already_updated
+                        cursor.execute('''
+                            UPDATE TblEmployeeProfile
+                            SET EmgContact = %s, EmgUpdatedByEmp = %s
+                            WHERE EmployeeId = %s
+                        ''', (data['EmgContact'], new_updated_val, emp_id))
+            conn.commit()
+
+    def get_employee_work_hours(self, emp_id):
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                # Today's hours
+                cursor.execute('''
+                    SELECT COALESCE(SUM(task_hours), 0)
+                    FROM tbl_daily_task
+                    WHERE emp_id = %s AND inserted_date::date = CURRENT_DATE
+                ''', (emp_id,))
+                today_hours = cursor.fetchone()[0]
+
+                # This week's hours (starting Monday)
+                cursor.execute('''
+                    SELECT COALESCE(SUM(task_hours), 0)
+                    FROM tbl_daily_task
+                    WHERE emp_id = %s AND inserted_date >= DATE_TRUNC('week', CURRENT_DATE)
+                ''', (emp_id,))
+                week_hours = cursor.fetchone()[0]
+
+                # This month's hours
+                cursor.execute('''
+                    SELECT COALESCE(SUM(task_hours), 0)
+                    FROM tbl_daily_task
+                    WHERE emp_id = %s AND inserted_date >= DATE_TRUNC('month', CURRENT_DATE)
+                ''', (emp_id,))
+                month_hours = cursor.fetchone()[0]
+
+                return {
+                    'today': today_hours,
+                    'week': week_hours,
+                    'month': month_hours
+                }

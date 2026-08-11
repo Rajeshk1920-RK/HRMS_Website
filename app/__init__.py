@@ -6,7 +6,7 @@ from flask import Flask
 
 from app.config import (
     SECRET_KEY, TEMPLATE_DIR, STATIC_DIR,
-    UPLOAD_FOLDER, INVOICE_FOLDER, WIKI_CAT_FOLDER,
+    UPLOAD_FOLDER, INVOICE_FOLDER, WIKI_CAT_FOLDER, PROFILE_PHOTO_FOLDER,
 )
 from app.filters import register_filters
 
@@ -22,9 +22,10 @@ def create_app():
 
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['WIKI_CAT_FOLDER'] = WIKI_CAT_FOLDER
+    app.config['PROFILE_PHOTO_FOLDER'] = PROFILE_PHOTO_FOLDER
 
     # Ensure upload folders exist
-    for folder in (UPLOAD_FOLDER, INVOICE_FOLDER, WIKI_CAT_FOLDER):
+    for folder in (UPLOAD_FOLDER, INVOICE_FOLDER, WIKI_CAT_FOLDER, PROFILE_PHOTO_FOLDER):
         if not os.path.exists(folder):
             os.makedirs(folder)
 
