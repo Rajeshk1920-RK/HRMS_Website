@@ -216,7 +216,11 @@ def employee_dashboard():
     status_filter = request.args.get('status_filter', 'all')
     tasks = db.get_tasks_by_employee(session['user_id'], status_filter=status_filter)
     today = date.today()  # Get current date
-    return render_template('dashboard/employee_dashboard.html', tasks=tasks, emg_missing=emg_missing, status_filter=status_filter, today=today)
+    approved_leaves = db.get_leave_requests(
+        'WHERE lr.employee_id=%s AND lr.status=%s AND lr.end_date >= %s',
+        (session['user_id'], 'approved', today)
+    )
+    return render_template('dashboard/employee_dashboard.html', tasks=tasks, emg_missing=emg_missing, status_filter=status_filter, today=today, approved_leaves=approved_leaves)
 
 @employees_bp.route('/employee/my_profile', methods=['GET', 'POST'])
 def employee_profile_view():
@@ -369,3 +373,204 @@ def delete_all_category(category):
         flash(str(e), 'error')
 
     return redirect(url_for('employees.admin_quick_delete', category=category))
+
+@employees_bp.route('/timesheet', methods=['GET', 'POST'])
+@employees_bp.route('/timesheet/<int:emp_id>', methods=['GET', 'POST'])
+def timesheet(emp_id=None):
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    
+    current_user_id = session['user_id']
+    is_admin = (session.get('emp_type') == 'admin')
+
+    if emp_id is None:
+        emp_id = current_user_id
+    elif emp_id != current_user_id and not is_admin:
+        from flask import abort
+        abort(403)
+
+    if request.method == 'POST':
+        submit_action = request.form.get('action')
+        if submit_action == 'leave':
+            data = {
+                'leave_type_id': request.form.get('leave_type_id'),
+                'employee_id': emp_id,
+                'start_date': request.form.get('start_date'),
+                'end_date': request.form.get('end_date'),
+                'leave_desc': request.form.get('leave_desc', '')[:500],
+                'day_period': request.form.get('day_period'),
+                'phone_no': request.form.get('phone_no'),
+                'notify_emails': request.form.get('notify_emails'),
+                'manager_id': None
+            }
+            try:
+                db.add_leave_request(data)
+                flash('Leave request submitted successfully!', 'success')
+            except Exception as e:
+                flash(f'Error submitting leave request: {e}', 'error')
+        
+        elif submit_action == 'regularise':
+            title = request.form.get('task_title', '').strip()
+            desc = request.form.get('task_desc', '').strip()
+            project_status = request.form.get('project_status', '').strip()
+            task_hours = request.form.get('task_hours', '').strip()
+            task_date = request.form.get('task_date', '').strip()
+            
+            if not title or not desc or not project_status or not task_hours or not task_date:
+                flash('All fields are required for regularisation.', 'error')
+            else:
+                try:
+                    hours_val = int(task_hours)
+                    db.add_daily_task(emp_id, title, desc, project_status, hours_val, task_date=task_date)
+                    flash('Attendance regularised and task logged successfully!', 'success')
+                except Exception as e:
+                    flash(f'Error regularising attendance: {e}', 'error')
+
+        return redirect(url_for('employees.timesheet', emp_id=emp_id))
+
+    employee = db.get_employee(emp_id)
+    leave_types = db.get_leave_types()
+    projects = db.get_projects()
+    task_statuses = db.get_task_statuses()
+
+    # Pre-populate dates for the calendar default (Aug 2026 or current)
+    from datetime import datetime
+    year = int(request.args.get('year', 2026))
+    month = int(request.args.get('month', 8))
+
+    return render_template('employees/timesheet.html', 
+                           employee=employee, 
+                           leave_types=leave_types, 
+                           projects=projects,
+                           task_statuses=task_statuses,
+                           emp_id=emp_id,
+                           year=year,
+                           month=month)
+
+@employees_bp.route('/api/timesheet_data/<int:emp_id>')
+def api_timesheet_data(emp_id):
+    from flask import jsonify
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    current_user_id = session['user_id']
+    is_admin = (session.get('emp_type') == 'admin')
+    if emp_id != current_user_id and not is_admin:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    from datetime import datetime, date, timedelta
+    import calendar
+
+    try:
+        year = int(request.args.get('year', 2026))
+        month = int(request.args.get('month', 8))
+    except ValueError:
+        return jsonify({'error': 'Invalid year or month'}), 400
+
+    public_holidays = {
+        '2026-01-15': 'Makara Sankranti',
+        '2026-01-26': 'Republic Day',
+        '2026-03-19': 'Ugadi Festival',
+        '2026-03-21': 'Khutub-E-Ramzan',
+        '2026-05-01': 'May Day',
+        '2026-05-28': 'Bakrid',
+        '2026-08-15': 'Independence Day',
+        '2026-08-26': 'Eid-Milad',
+        '2026-10-02': 'Gandhi Jayanthi',
+        '2026-10-20': 'Mahannavami, Ayudha Pooja',
+        '2026-11-10': 'Balipadyami, Deepavali',
+        '2026-12-25': 'Christmas'
+    }
+    restricted_holidays = {
+        '2026-02-04': 'Shah-e-Barath',
+        '2026-03-02': 'Holi Festival',
+        '2026-03-17': 'Shab-e-Qadar',
+        '2026-03-27': 'Sri Ramanavami',
+        '2026-03-31': 'Mahaveera Jayanthi',
+        '2026-04-03': 'Good Friday',
+        '2026-04-14': 'Dr. B.R. Ambedkar Jayanthi',
+        '2026-04-20': 'Basava Jayanthi',
+        '2026-06-26': 'Last Day of Moharam',
+        '2026-08-28': 'Raksha Bandhan',
+        '2026-10-21': 'Vijayadasami',
+        '2026-11-27': 'Kanakadasa Jayanthi',
+        '2026-11-24': 'Guru Nanak Jayanthi'
+    }
+
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    start_date = f"{year:04d}-{month:02d}-01"
+    _, last_day = calendar.monthrange(year, month)
+    end_date = f"{year:04d}-{month:02d}-{last_day:02d}"
+
+    cursor.execute('''
+        SELECT inserted_date::date, SUM(task_hours)
+        FROM tbl_daily_task
+        WHERE emp_id = %s AND inserted_date::date BETWEEN %s AND %s
+        GROUP BY inserted_date::date
+    ''', (emp_id, start_date, end_date))
+    tasks = {str(row[0]): int(row[1]) for row in cursor.fetchall()}
+
+    cursor.execute('''
+        SELECT lr.start_date, lr.end_date, lt.leave_type, lr.status
+        FROM tbl_leave_request lr
+        JOIN tbl_leave_type lt ON lt.leave_type_id = lr.leave_type_id
+        WHERE lr.employee_id = %s AND lr.status = 'approved'
+          AND NOT (lr.end_date < %s OR lr.start_date > %s)
+    ''', (emp_id, start_date, end_date))
+    leaves = cursor.fetchall()
+    
+    conn.close()
+
+    d_start = date(year, month, 1)
+    d_end = date(year, month, last_day)
+    
+    calendar_data = {}
+    curr = d_start
+    while curr <= d_end:
+        curr_str = str(curr)
+        is_weekend = (curr.weekday() in (5, 6))
+        is_pub_holiday = curr_str in public_holidays
+        is_rest_holiday = curr_str in restricted_holidays
+        
+        covered_leave = None
+        for lf in leaves:
+            lf_start, lf_end, lf_type, lf_status = lf
+            if lf_start <= curr <= lf_end:
+                covered_leave = lf_type
+                break
+        
+        hours = tasks.get(curr_str, 0)
+        
+        status = 'absent'
+        desc = ''
+        
+        if hours > 0:
+            if covered_leave or is_pub_holiday or is_rest_holiday:
+                status = 'multiple_events'
+                desc = 'Logged hours during leave/holiday'
+            else:
+                status = 'present'
+        elif covered_leave:
+            status = 'leave'
+            desc = f"Approved Leave: {covered_leave}"
+        elif is_pub_holiday:
+            status = 'holiday'
+            desc = f"Public Holiday: {public_holidays[curr_str]}"
+        elif is_rest_holiday:
+            status = 'holiday'
+            desc = f"Restricted Holiday: {restricted_holidays[curr_str]}"
+        elif is_weekend:
+            status = 'weekly_off'
+        else:
+            status = 'absent'
+
+        calendar_data[curr_str] = {
+            'status': status,
+            'hours': hours,
+            'description': desc
+        }
+        curr += timedelta(days=1)
+
+    return jsonify(calendar_data)
