@@ -25,7 +25,9 @@ def view_project(project_id):
         return redirect(url_for('projects.view_projects'))
 
     tasks = db.get_tasks_by_project(project_id)
-    return render_template('projects/view_project.html', project=project, tasks=tasks)
+    work_items = db.get_work_items(project_id=project_id)
+    metrics = db.get_project_dashboard_metrics(project_id)
+    return render_template('projects/view_project.html', project=project, tasks=tasks, work_items=work_items, metrics=metrics)
 
 @projects_bp.route('/admin/edit_project/<int:project_id>', methods=['GET', 'POST'])
 def edit_project(project_id):

@@ -75,8 +75,40 @@
         </div>
     </div>
 
+    <!-- Project Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-blue-500">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Work Items</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_tasks }}</h3>
+            </div>
+            <i class="fas fa-tasks text-3xl text-gray-300"></i>
+        </div>
+        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-purple-500">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Estimated Hours</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_hours }} hrs</h3>
+            </div>
+            <i class="fas fa-clock text-3xl text-gray-300"></i>
+        </div>
+        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-green-500">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1st QA Passed</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.first_qa_passed }}</h3>
+            </div>
+            <i class="fas fa-check-double text-3xl text-gray-300"></i>
+        </div>
+        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-red-500">
+            <div>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">QA Failed Attempts</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.qa_failed }}</h3>
+            </div>
+            <i class="fas fa-exclamation-triangle text-3xl text-gray-300"></i>
+        </div>
+    </div>
+
     <!-- Associated Tasks Section -->
-    <div class="bg-white shadow rounded-lg">
+    <div class="bg-white shadow rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Associated Tasks</h3>
             {% if tasks %}
@@ -130,6 +162,67 @@
             </div>
             {% else %}
             <p class="text-gray-500 italic">No tasks associated with this project.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Associated Work Items Section -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Work Items / Task Workflow</h3>
+                {% if session.emp_type == 'admin' %}
+                <a href="{{ url_for('work_items.add_work_item', project_id=project[0]) }}"
+                   class="inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                    <i class="fas fa-plus mr-1"></i>Add Work Item
+                </a>
+                {% endif %}
+            </div>
+            {% if work_items %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Est. Hours</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in work_items %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ item[1] }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900 font-medium max-w-xs truncate">{{ item[4] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[12] }} {{ item[13] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if item[10] == 'New' %}bg-yellow-100 text-yellow-800
+                                    {% elif item[10] == 'Active' %}bg-blue-100 text-blue-800
+                                    {% elif item[10] == 'Testing' %}bg-purple-100 text-purple-800
+                                    {% elif item[10] == 'UAT' %}bg-orange-100 text-orange-800
+                                    {% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ item[10] }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[7] }} hrs</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[9].strftime('%d-%b-%Y') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
+                                   class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition duration-200">
+                                    <i class="fas fa-eye mr-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500 italic">No work items associated with this project.</p>
             {% endif %}
         </div>
     </div>
