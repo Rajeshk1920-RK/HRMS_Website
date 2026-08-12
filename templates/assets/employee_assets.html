@@ -60,10 +60,9 @@
                         <td class="p-2">{{ alloc_date }}</td>
                         <td class="p-2">{{ alloc_by }}</td>
                         <td class="p-2">{{ desc }}</td>
-                        <td class="p-2">
-                            <button onclick="openModal({ cur_asset_id })"
-                                class="text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700 text-sm">
-                                Report Issue
+                        <td class="p-2" <button onclick="openModal('{{ cur_asset_id }}')"
+                            class="text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700 text-sm">
+                            Report Issue
                             </button>
                         </td>
                     </tr>

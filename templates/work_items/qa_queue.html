@@ -1,0 +1,118 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}QA Dashboard - HRMS{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
+{% block content %}
+<div class="w-full px-1">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">QA / Testing Control</h1>
+        <p class="text-sm text-gray-600 mt-1">Review work items submitted for QA and UAT verification runs.</p>
+    </div>
+
+    <!-- Testing Queue (Pending QA) -->
+    <div class="bg-white shadow rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6 border-b border-gray-200 flex justify-between items-center bg-purple-50/50">
+            <h3 class="text-lg font-semibold text-purple-950 flex items-center gap-2">
+                <i class="fas fa-flask text-purple-600"></i> Testing Queue (Pending QA Verification)
+            </h3>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-purple-200 text-purple-900">{{ testing_items|length }} items</span>
+        </div>
+        <div class="overflow-x-auto">
+            {% if testing_items %}
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Work ID</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Developer</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Submitted Date</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in testing_items %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{{ item[1] }}</td>
+                        <td class="px-6 py-4 font-medium truncate max-w-xs">{{ item[4] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ item[11] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ item[12] }} {{ item[13] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ item[9].strftime('%d-%b-%Y') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap space-x-2 font-medium">
+                            <a href="{{ url_for('work_items.perform_qa', work_item_id=item[0]) }}"
+                               class="inline-flex items-center px-2.5 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded transition duration-200">
+                                <i class="fas fa-microscope mr-1"></i>Test Item
+                            </a>
+                            <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
+                               class="inline-flex items-center px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition duration-200">
+                                <i class="fas fa-eye mr-1"></i>Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-8 text-gray-500 italic">No tasks pending QA review. Clean inbox!</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- UAT Queue (Pending Release) -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6 border-b border-gray-200 flex justify-between items-center bg-emerald-50/50">
+            <h3 class="text-lg font-semibold text-emerald-950 flex items-center gap-2">
+                <i class="fas fa-check-circle text-emerald-600"></i> UAT Queue (Pending Release Verification)
+            </h3>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-200 text-emerald-900">{{ uat_items|length }} items</span>
+        </div>
+        <div class="overflow-x-auto">
+            {% if uat_items %}
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Work ID</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Developer</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date Passed QA</th>
+                        <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in uat_items %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{{ item[1] }}</td>
+                        <td class="px-6 py-4 font-medium truncate max-w-xs">{{ item[4] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ item[11] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ item[12] }} {{ item[13] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ item[9].strftime('%d-%b-%Y') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap space-x-2 font-medium">
+                            <a href="{{ url_for('work_items.update_status', work_item_id=item[0], status='Resolved') }}"
+                               class="inline-flex items-center px-2.5 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition duration-200"
+                               onclick="return confirm('Resolve and close this work item?');">
+                                <i class="fas fa-check mr-1"></i>Resolve
+                            </a>
+                            <a href="{{ url_for('work_items.perform_qa', work_item_id=item[0]) }}"
+                               class="inline-flex items-center px-2.5 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded transition duration-200">
+                                <i class="fas fa-redo mr-1"></i>Re-Test
+                            </a>
+                            <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
+                               class="inline-flex items-center px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition duration-200">
+                                <i class="fas fa-eye mr-1"></i>Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-8 text-gray-500 italic">No tasks currently in UAT verification.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

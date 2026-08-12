@@ -13,9 +13,10 @@ from app.models.leave import LeaveMixin
 from app.models.expenses import ExpenseMixin
 from app.models.wiki import WikiMixin
 from app.models.admin import AdminMixin
+from app.models.work_items import WorkItemMixin
 
 
 class Database(AuthMixin, EmployeeMixin, ProjectMixin, TaskMixin,
                LeaveMixin, ExpenseMixin, WikiMixin, AdminMixin,
-               DatabaseBase):
+               WorkItemMixin, DatabaseBase):
     pass

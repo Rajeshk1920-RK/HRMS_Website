@@ -8,6 +8,7 @@ from app.routes.expenses import expenses_bp
 from app.routes.wiki import wiki_bp
 from app.routes.careers import careers_bp
 from app.routes.assets import assets_bp
+from app.routes.work_items import work_items_bp
 
 all_blueprints = (
     auth_bp,
@@ -19,4 +20,5 @@ all_blueprints = (
     wiki_bp,
     careers_bp,
     assets_bp,
+    work_items_bp,
 )
