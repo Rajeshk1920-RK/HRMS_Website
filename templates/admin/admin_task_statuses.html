@@ -44,15 +44,15 @@
                     {% for status in statuses %}
                     <tr class="hover:bg-gray-50/50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 status-name">
-                            {{ status[1] }}
+                            {{ status[1]|replace('_', ' ')|title }}
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-500 status-desc">
                             {{ status[2] or 'No description' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold text-white" 
-                                  style="background-color: {{ status[3] or '#6b7280' }};">
-                                {{ status[1] }}
+                                  {{ 'style="background-color: ' ~ (status[3] or '#6b7280') ~ ';"' | safe }}>
+                                {{ status[1]|replace('_', ' ')|title }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -106,23 +106,23 @@
                 <div class="space-y-2">
                     <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Quick Presets:</span>
                     <div class="flex flex-wrap gap-2">
-                        <button type="button" onclick="applyPreset('Pending', 'Task has been created but not started', '#f59e0b')"
+                        <button type="button" onclick="applyPreset('pending', 'Task has been created but not started', '#f59e0b')"
                                 class="px-3 py-1.5 rounded-full text-xs font-medium text-white bg-[#0d7a70] hover:bg-[#0b665d] transition-colors">
                             Pending
                         </button>
-                        <button type="button" onclick="applyPreset('Work In Progress', 'Task is currently being worked on', '#3b82f6')"
+                        <button type="button" onclick="applyPreset('in_progress', 'Task is currently being worked on', '#3b82f6')"
                                 class="px-3 py-1.5 rounded-full text-xs font-medium text-white bg-[#0d7a70] hover:bg-[#0b665d] transition-colors">
                             Work In Progress
                         </button>
-                        <button type="button" onclick="applyPreset('Completed', 'Task has been successfully completed', '#10b981')"
+                        <button type="button" onclick="applyPreset('completed', 'Task has been successfully completed', '#10b981')"
                                 class="px-3 py-1.5 rounded-full text-xs font-medium text-white bg-[#0d7a70] hover:bg-[#0b665d] transition-colors">
                             Completed
                         </button>
-                        <button type="button" onclick="applyPreset('Blocked', 'Task is blocked by dependency or issue', '#ef4444')"
+                        <button type="button" onclick="applyPreset('blocked', 'Task is blocked by dependency or issue', '#ef4444')"
                                 class="px-3 py-1.5 rounded-full text-xs font-medium text-white bg-[#0d7a70] hover:bg-[#0b665d] transition-colors">
                             Blocked
                         </button>
-                        <button type="button" onclick="applyPreset('On Hold', 'Task is temporarily suspended', '#8b5cf6')"
+                        <button type="button" onclick="applyPreset('on_hold', 'Task is temporarily suspended', '#8b5cf6')"
                                 class="px-3 py-1.5 rounded-full text-xs font-medium text-white bg-[#0d7a70] hover:bg-[#0b665d] transition-colors">
                             On Hold
                         </button>

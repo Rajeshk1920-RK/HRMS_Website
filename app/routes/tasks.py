@@ -57,27 +57,62 @@ def edit_task(task_id):
         return redirect(url_for('tasks.view_tasks'))
 
     if request.method == 'POST':
-        task_data = {
-            'project_id': request.form['project_id'],
-            'emp_id': request.form['emp_id'],
-            'task_desc': request.form['task_desc'],
-            'priority': request.form['priority'],
-            'status': request.form['status'],
-            'start_date': request.form['start_date'],
-            'end_date': request.form['end_date']
-        }
+        project_id = int(request.form['project_id'])
+        emp_id = int(request.form['emp_id'])
+        title = request.form['title'].strip()
+        task_desc = request.form['task_desc'].strip()
+        priority = request.form['priority']
+        status = request.form['status']
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        module_id = request.form.get('module_id')
+        estimated_hours = float(request.form.get('estimated_hours') or 0.0)
 
-        try:
-            db.update_task(task_id, task_data)
-            flash('Task updated successfully!', 'success')
-            return redirect(url_for('tasks.view_tasks'))
-        except Exception as e:
-            flash('Error updating task.', 'error')
+        # Enforce that assigned employee must be in project team
+        project_members = db.get_project_members(project_id)
+        member_ids = [m[2] for m in project_members]
+        
+        # Get project details to check PM and Lead
+        project = db.get_project(project_id)
+        pm_id = project[13] if project else None
+        tl_id = project[14] if project else None
+        
+        if emp_id not in member_ids and emp_id != pm_id and emp_id != tl_id:
+            flash('Error: The assigned employee is not a member of this project.', 'error')
+        elif not title:
+            flash('Error: Task title is required.', 'error')
+        else:
+            task_data = {
+                'project_id': project_id,
+                'emp_id': emp_id,
+                'title': title,
+                'task_desc': task_desc,
+                'priority': priority,
+                'status': status,
+                'start_date': start_date,
+                'end_date': end_date,
+                'module_id': int(module_id) if module_id else None,
+                'estimated_hours': estimated_hours,
+                'updated_by': session['user_id']
+            }
+
+            try:
+                db.update_task(task_id, task_data)
+                flash('Task updated successfully!', 'success')
+                return redirect(url_for('tasks.view_tasks'))
+            except Exception as e:
+                flash(f'Error updating task: {str(e)}', 'error')
 
     projects = db.get_projects()
     employees = db.get_employees()
     task_statuses = db.get_task_statuses()
-    return render_template('tasks/edit_task.html', task=task, projects=projects, employees=employees, task_statuses=task_statuses)
+    
+    # Fetch modules and members for the current task's project
+    modules = db.get_project_modules(task[2])
+    project_members = db.get_project_members(task[2])
+    
+    return render_template('tasks/edit_task.html', task=task, projects=projects, employees=employees, task_statuses=task_statuses, modules=modules, project_members=project_members)
+
 
 @tasks_bp.route('/admin/delete_task/<int:task_id>')
 def delete_task(task_id):
@@ -85,12 +120,13 @@ def delete_task(task_id):
         return redirect(url_for('auth.login'))
 
     try:
-        db.delete_task(task_id)
+        db.delete_task(task_id, user_id=session['user_id'])
         flash('Task deleted successfully!', 'success')
     except Exception as e:
         flash('Error deleting task.', 'error')
 
     return redirect(url_for('tasks.view_tasks'))
+
 
 @tasks_bp.route('/admin/add_task', methods=['GET', 'POST'])
 def add_task():
@@ -98,22 +134,51 @@ def add_task():
         return redirect(url_for('auth.login'))
 
     if request.method == 'POST':
-        task_data = {
-            'project_id': request.form['project_id'],
-            'emp_id': request.form['emp_id'],
-            'task_desc': request.form['task_desc'],
-            'priority': request.form['priority'],
-            'status': request.form['status'],
-            'start_date': request.form['start_date'],
-            'end_date': request.form['end_date']
-        }
+        project_id = int(request.form['project_id'])
+        emp_id = int(request.form['emp_id'])
+        title = request.form['title'].strip()
+        task_desc = request.form['task_desc'].strip()
+        priority = request.form['priority']
+        status = request.form['status']
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        module_id = request.form.get('module_id')
+        estimated_hours = float(request.form.get('estimated_hours') or 0.0)
 
-        try:
-            db.add_task(task_data)
-            flash('Task added successfully!', 'success')
-            return redirect(url_for('tasks.view_tasks'))
-        except Exception as e:
-            flash('Error adding task.', 'error')
+        # Enforce that assigned employee must be in project team
+        project_members = db.get_project_members(project_id)
+        member_ids = [m[2] for m in project_members]
+        
+        # Get project details to check PM and Lead
+        project = db.get_project(project_id)
+        pm_id = project[13] if project else None
+        tl_id = project[14] if project else None
+
+        if emp_id not in member_ids and emp_id != pm_id and emp_id != tl_id:
+            flash('Error: The assigned employee is not a member of this project.', 'error')
+        elif not title:
+            flash('Error: Task title is required.', 'error')
+        else:
+            task_data = {
+                'project_id': project_id,
+                'emp_id': emp_id,
+                'title': title,
+                'task_desc': task_desc,
+                'priority': priority,
+                'status': status,
+                'start_date': start_date,
+                'end_date': end_date,
+                'module_id': int(module_id) if module_id else None,
+                'estimated_hours': estimated_hours,
+                'created_by': session['user_id']
+            }
+
+            try:
+                db.add_task(task_data)
+                flash('Task added successfully!', 'success')
+                return redirect(url_for('tasks.view_tasks'))
+            except Exception as e:
+                flash(f'Error adding task: {str(e)}', 'error')
 
     projects = db.get_projects()
     employees = db.get_employees()
@@ -123,7 +188,7 @@ def add_task():
 
 @tasks_bp.route('/employee/add_task_detail', methods=['POST'])
 def add_task_detail():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     task_id = request.form['task_id']
@@ -145,7 +210,7 @@ def add_task_detail():
 
 @tasks_bp.route('/employee/view_task_details/<int:task_id>')
 def view_task_details(task_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     task = db.get_task(task_id)
@@ -159,7 +224,7 @@ def view_task_details(task_id):
 
 @tasks_bp.route('/employee/edit_task_detail/<int:detail_id>', methods=['GET', 'POST'])
 def edit_task_detail(detail_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     detail = db.get_task_detail(detail_id)
@@ -182,7 +247,7 @@ def edit_task_detail(detail_id):
 
 @tasks_bp.route('/employee/daily_tasks', methods=['GET', 'POST'])
 def employee_daily_tasks():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     profile = db.get_employee_profile(session['user_id'])
@@ -204,28 +269,68 @@ def employee_daily_tasks():
             end_date = current_ist_str
 
     if request.method == 'POST':
-        if not statuses:
-            flash("Cannot submit task. Wait for admin status update.", "error")
-            return redirect(url_for('tasks.employee_daily_tasks'))
-        title = request.form.get('task_title', '').strip()
-        desc = request.form.get('task_desc', '').strip()
-        project_status = request.form.get('project_status', '').strip()
+        project_id_str = request.form.get('project_id', '').strip()
         task_hours = request.form.get('task_hours', '').strip()
+        desc = request.form.get('task_desc', '').strip()
 
-        if not title or not desc or not project_status or not task_hours:
-            flash("All fields are required.", "error")
-        else:
+        try:
+            hours_val = float(task_hours)
+            if hours_val <= 0 or hours_val > 24:
+                raise ValueError
+        except ValueError:
+            flash("Hours must be a valid number between 0.25 and 24.", "error")
+            return redirect(url_for('tasks.employee_daily_tasks', tab='history'))
+
+        if project_id_str:
+            project_id = int(project_id_str)
+            task_id_str = request.form.get('task_id', '').strip()
+            if not task_id_str:
+                flash("Task selection is required for project work reporting.", "error")
+                return redirect(url_for('tasks.employee_daily_tasks'))
+            
+            task_id = int(task_id_str)
+            progress_percentage = int(request.form.get('progress_percentage', '0'))
+            blocker = request.form.get('blocker', '').strip()
+            tomorrow_plan = request.form.get('tomorrow_plan', '').strip()
+            status_change = request.form.get('status_change', '')
+
+            task = db.get_task(task_id)
+            if not task or task[2] != project_id or task[3] != session['user_id']:
+                flash('Error: Task verification failed. Cannot log work for this task.', 'error')
+                return redirect(url_for('tasks.employee_daily_tasks', tab='history'))
+
             try:
-                hours_val = int(task_hours)
-                if hours_val <= 0 or hours_val > 24:
-                    raise ValueError
-            except ValueError:
-                flash("Hours must be a valid number between 1 and 24.", "error")
-                return redirect(url_for('tasks.employee_daily_tasks', start_date=start_date, end_date=end_date))
+                report_data = {
+                    'employee_id': session['user_id'],
+                    'project_id': project_id,
+                    'task_id': task_id,
+                    'hours_worked': hours_val,
+                    'work_description': desc,
+                    'progress_percentage': progress_percentage,
+                    'blocker': blocker or None,
+                    'tomorrow_plan': tomorrow_plan or None
+                }
+                db.add_work_report(report_data)
 
-            db.add_daily_task(session['user_id'], title, desc, project_status, hours_val)
-            flash("Daily task submitted successfully!", "success")
-            return redirect(url_for('tasks.employee_daily_tasks', start_date=start_date, end_date=end_date))
+                if status_change in ['in_progress', 'in_review']:
+                    db.update_task_status_only(task_id, status_change, user_id=session['user_id'])
+
+                flash('Project daily work report submitted successfully.', 'success')
+            except Exception as e:
+                flash(f'Error logging project work report: {str(e)}', 'error')
+        else:
+            if not statuses:
+                flash("Cannot submit task. Wait for admin status update.", "error")
+                return redirect(url_for('tasks.employee_daily_tasks'))
+            title = request.form.get('task_title', '').strip()
+            project_status = request.form.get('project_status', '').strip()
+
+            if not title or not desc or not project_status:
+                flash("All fields are required.", "error")
+            else:
+                db.add_daily_task(session['user_id'], title, desc, project_status, hours_val)
+                flash("Daily task submitted successfully!", "success")
+        return redirect(url_for('tasks.employee_daily_tasks', tab='history'))
 
     daily_tasks = db.get_daily_tasks_by_employee(session['user_id'], start_date, end_date)
 
@@ -264,17 +369,22 @@ def employee_daily_tasks():
     summary_list = list(grouped_tasks.values())
     summary_list.sort(key=lambda x: x['date_raw'], reverse=True)
 
+    my_projects = db.get_projects_by_employee(session['user_id'])
+    reports = db.get_work_reports_by_employee(session['user_id'])
+
     return render_template('tasks/employee_daily_tasks.html',
                            daily_tasks=daily_tasks,
                            summary_list=summary_list,
                            statuses=statuses,
                            start_date=start_date,
-                           end_date=end_date)
+                           end_date=end_date,
+                           my_projects=my_projects,
+                           reports=reports)
 
 
 @tasks_bp.route('/employee/daily_task_details/<string:task_date>')
 def employee_daily_task_details(task_date):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     emp_id = session['user_id']
@@ -306,7 +416,7 @@ def employee_daily_task_details(task_date):
 
 @tasks_bp.route('/employee/daily_task/edit/<int:task_id>', methods=['GET', 'POST'])
 def edit_daily_task(task_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     task = db.get_daily_task(task_id)
@@ -349,7 +459,7 @@ def edit_daily_task(task_id):
 
 @tasks_bp.route('/employee/daily_task/delete/<int:task_id>', methods=['POST'])
 def delete_daily_task(task_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     task = db.get_daily_task(task_id)
@@ -524,7 +634,7 @@ def show_task_details(task_id):
 
 @tasks_bp.route('/api/task_detail/<int:detail_id>')
 def api_get_task_detail(detail_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return jsonify({'error': 'Unauthorized'}), 401
 
     detail = db.get_task_detail(detail_id)
@@ -638,7 +748,7 @@ def delete_employee_status(status_id):
 
 @tasks_bp.route('/employee/reports')
 def employee_reports():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
         
     project_filter = request.args.get('project_filter', '')
@@ -662,7 +772,7 @@ def employee_reports():
 
 @tasks_bp.route('/employee/kanban')
 def employee_kanban():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
         
     tasks = db.get_tasks_by_employee(session['user_id'])

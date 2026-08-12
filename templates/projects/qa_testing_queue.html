@@ -1,0 +1,151 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}QA Testing Queue - Project Tracking System{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">QA Testing Queue</h1>
+        <p class="mt-1 text-sm text-gray-500">Verify and log QA test results for tasks submitted by developers.</p>
+    </div>
+
+    <!-- Active QA Queue (Pending testing) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+        <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">Pending QA Queue</h3>
+            <span class="text-xs bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-bold">{{ queue|length }} Tasks Pending</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Task Details</th>
+                        <th class="py-4 px-6">Project / Module</th>
+                        <th class="py-4 px-6">Developer</th>
+                        <th class="py-4 px-6">Submitted Date</th>
+                        <th class="py-4 px-6">Priority</th>
+                        <th class="py-4 px-6">QA Status</th>
+                        <th class="py-4 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for t in queue %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-gray-900 block text-base">{{ t[1] }}</span>
+                            <span class="text-xs text-gray-400 font-normal line-clamp-1 mt-0.5">{{ t[2] }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            <span class="font-semibold text-gray-700 block">{{ t[9] }}</span>
+                            <span class="text-xs text-gray-400 block mt-0.5">{{ t[13] or 'No Module' }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center gap-2">
+                                <div class="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                    {{ t[11][0] }}{{ t[12][0] }}
+                                </div>
+                                <span>{{ t[11] }} {{ t[12] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ t[7].strftime('%d %b %Y, %H:%M') if t[7] is not string and t[7] else t[7] }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set pr = t[3] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+                                {% if pr == 'Critical' %}bg-rose-50 text-rose-700
+                                {% elif pr == 'High' %}bg-amber-50 text-amber-700
+                                {% elif pr == 'Medium' %}bg-blue-50 text-blue-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ pr }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set status = t[4] %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                {% if status == 'qa_testing' %}bg-indigo-50 text-indigo-700
+                                {% else %}bg-purple-50 text-purple-700{% endif %}">
+                                {{ 'QA Testing' if status == 'qa_testing' else 'In Review' }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <a href="{{ url_for('projects.perform_qa_test', task_id=t[0]) }}" 
+                               class="inline-flex items-center justify-center px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition gap-1 shadow-sm">
+                                <i class="fas fa-check-double text-[10px]"></i> Perform QA
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-check-circle text-4xl block mb-3 text-gray-200"></i>
+                            <span>No tasks are currently waiting in the QA queue.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- QA Verification History (Test Logs) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">Recent Test Logs</h3>
+            <span class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-bold">{{ history|length }} Logs</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Task Title</th>
+                        <th class="py-4 px-6">Project Name</th>
+                        <th class="py-4 px-6">Tester</th>
+                        <th class="py-4 px-6">Test Date</th>
+                        <th class="py-4 px-6">Result</th>
+                        <th class="py-4 px-6">Comments / Feedback</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for q in history %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-gray-900 block">{{ q[9] }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ q[10] }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {{ q[11] }} {{ q[12] }}
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ q[3].strftime('%d %b %Y') if q[3] is not string and q[3] else q[3] }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set res = q[6] %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold
+                                {% if res == 'PASS' %}bg-emerald-50 text-emerald-700
+                                {% else %}bg-rose-50 text-rose-700{% endif %}">
+                                <i class="fas {{ 'fa-check' if res == 'PASS' else 'fa-times' }} mr-1.5 text-[10px]"></i>
+                                {{ res }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-400 font-normal max-w-sm break-words">
+                            {{ q[7] or 'No comments.' }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-folder-open text-4xl block mb-3 text-gray-200"></i>
+                            <span>No QA test logs generated yet.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -21,7 +21,7 @@ def register():
         if session['emp_type'] == 'admin':
             return redirect(url_for('employees.admin_dashboard'))
         else:
-            return redirect(url_for('employees.employee_profile_view'))
+            return redirect(url_for('employees.employee_dashboard'))
 
     if request.method == 'POST':
         first_name = request.form['first_name']
@@ -106,7 +106,7 @@ def login():
             if user[3] == 'admin':
                 return redirect(url_for('employees.admin_dashboard'))
             else:
-                return redirect(url_for('employees.employee_profile_view'))
+                return redirect(url_for('employees.employee_dashboard'))
         else:
             flash('Invalid Login ID or password', 'error')
 

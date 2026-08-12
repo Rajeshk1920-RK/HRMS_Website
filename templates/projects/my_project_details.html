@@ -1,0 +1,275 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Project Details - Project Tracking System{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Back to My Projects -->
+    <div class="mb-4">
+        <a href="{{ url_for('projects.my_projects') }}" class="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            <i class="fas fa-arrow-left"></i> Back to My Projects
+        </a>
+    </div>
+
+    <!-- Project Header Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-mono font-bold">{{ project[7] }}</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg font-bold">{{ project[8] }}</span>
+                </div>
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ project[1] }}</h1>
+                <div class="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-500 font-medium">
+                    <div>
+                        <i class="far fa-user text-gray-400 mr-1.5"></i>
+                        <span>Manager: <strong>{{ project[15] }} {{ project[16] }}</strong></span>
+                    </div>
+                    <div>
+                        <i class="far fa-calendar-alt text-gray-400 mr-1.5"></i>
+                        <span>Start: <strong>{{ project[5] }}</strong></span>
+                    </div>
+                    <div>
+                        <i class="far fa-clock text-gray-400 mr-1.5"></i>
+                        <span>Deadline: <strong>{{ project[6] }}</strong></span>
+                    </div>
+                    {% if project[19] %}
+                    <div>
+                        <i class="fab fa-github text-gray-400 mr-1.5"></i>
+                        <a href="{{ project[19] }}" target="_blank" class="hover:text-blue-600 font-bold transition">GitHub Repository</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress & Status Info -->
+            <div class="flex items-center gap-6 w-full lg:w-auto">
+                <div class="w-full lg:w-48 space-y-1.5">
+                    <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Project Progress</span>
+                    <div class="flex items-center gap-3">
+                        <div class="w-full bg-gray-100 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="--width: {{ project[12] }}%; width: var(--width);"></div>
+                        </div>
+                        <span class="text-sm font-extrabold text-gray-700">{{ project[12] }}%</span>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block mb-1">Status</span>
+                    {% set status = project[4] %}
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-xl text-sm font-bold shadow-sm bg-blue-600 text-white">
+                        {{ status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-gray-200 mb-8 overflow-x-auto whitespace-nowrap">
+        <nav class="flex gap-8 text-sm font-semibold pb-1">
+            {% for tab in ['overview', 'my tasks', 'team', 'activity'] %}
+                {% set canonical_tab = tab.replace(' ', '_') %}
+                <a href="{{ url_for('projects.my_project_details', project_id=project[0], tab=canonical_tab) }}"
+                   class="pb-4 px-1 border-b-2 transition-all duration-200 uppercase tracking-wide text-xs
+                          {{ 'border-blue-600 text-blue-600 font-bold' if active_tab == canonical_tab
+                             else 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300' }}">
+                    <i class="{% if tab == 'overview' %}fas fa-info-circle
+                              {% elif tab == 'my tasks' %}fas fa-tasks
+                              {% elif tab == 'team' %}fas fa-users
+                              {% else %}fas fa-history{% endif %} mr-2 text-sm"></i>
+                    {{ tab }}
+                </a>
+            {% endfor %}
+        </nav>
+    </div>
+
+    <!-- ==================== TAB CONTENT: OVERVIEW ==================== -->
+    {% if active_tab == 'overview' %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Description & Client (3 Cols) -->
+        <div class="lg:col-span-3 space-y-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Project Description</h3>
+                <p class="text-gray-700 leading-relaxed text-sm whitespace-pre-line">{{ project[3] or 'No description provided.' }}</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">General Info</h3>
+                <div class="grid grid-cols-2 gap-6 text-sm">
+                    <div>
+                        <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Priority</span>
+                        <span class="font-bold text-gray-900 mt-1 block">{{ project[2] }}</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Team Lead</span>
+                        <span class="font-bold text-gray-900 mt-1 block">{% if project[17] %}{{ project[17] }} {{ project[18] }}{% else %}None Assigned{% endif %}</span>
+                    </div>
+                    {% if project[19] %}
+                    <div class="col-span-2">
+                        <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">GitHub Repository</span>
+                        <a href="{{ project[19] }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-bold mt-1 inline-flex items-center gap-1.5 transition">
+                            <i class="fab fa-github text-base"></i>
+                            <span>{{ project[19] }}</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB CONTENT: MY TASKS ==================== -->
+    {% elif active_tab == 'my_tasks' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">My Tasks in this Project</h3>
+            <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold">{{ my_tasks|length }} Tasks</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Task Title</th>
+                        <th class="py-4 px-6">Module</th>
+                        <th class="py-4 px-6">Priority</th>
+                        <th class="py-4 px-6">Estimated Hours</th>
+                        <th class="py-4 px-6">Deadline</th>
+                        <th class="py-4 px-6">Status</th>
+                        <th class="py-4 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for t in my_tasks %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-gray-900 block text-base">{{ t[10] or t[1] }}</span>
+                            <span class="text-xs text-gray-400 font-normal line-clamp-1 mt-0.5">{{ t[1] }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ t[12] or 'General' }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set priority = t[4] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+                                {% if priority == 'Critical' %}bg-rose-50 text-rose-700
+                                {% elif priority == 'High' %}bg-amber-50 text-amber-700
+                                {% elif priority == 'Medium' %}bg-blue-50 text-blue-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ priority }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 font-mono text-gray-500 font-normal">
+                            {{ t[11] }} hrs
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ t[7] }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set t_status = t[5] %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                {% if t_status == 'completed' %}bg-emerald-50 text-emerald-700
+                                {% elif t_status == 'in_progress' %}bg-blue-50 text-blue-700
+                                {% elif t_status == 'blocked' %}bg-rose-50 text-rose-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ t_status }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <a href="{{ url_for('tasks.employee_daily_tasks') }}?task_id={{ t[0] }}&project_id={{ project[0] }}" 
+                               class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition gap-1.5 shadow-sm">
+                                <i class="fas fa-edit text-[10px]"></i> Log Work
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-tasks text-4xl block mb-3 text-gray-300"></i>
+                            <span>You do not have any tasks assigned in this project.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== TAB CONTENT: TEAM ==================== -->
+    {% elif active_tab == 'team' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-3xl">
+        <div class="px-6 py-5 border-b border-gray-50 bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">Project Team Members</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Member Name</th>
+                        <th class="py-4 px-6">Project Role</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for m in members %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="py-4 px-6 flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                {{ m[6][0] }}{{ m[7][0] }}
+                            </div>
+                            <div>
+                                <span class="font-bold text-gray-900">{{ m[6] }} {{ m[7] }}</span>
+                                <span class="text-xs text-gray-400 block font-normal">{{ m[8] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="bg-gray-100 text-gray-800 text-xs px-2.5 py-1 rounded-lg font-bold">{{ m[3] }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== TAB CONTENT: ACTIVITY ==================== -->
+    {% elif active_tab == 'activity' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-3xl">
+        <h3 class="text-lg font-bold text-gray-900 mb-6 border-b border-gray-50 pb-3">Project History Log</h3>
+        {% if activity %}
+        <div class="flow-root">
+            <ul class="-mb-8">
+                {% for act in activity %}
+                <li>
+                    <div class="relative pb-8">
+                        {% if not loop.last %}
+                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                        {% endif %}
+                        <div class="relative flex space-x-3">
+                            <div>
+                                <span class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white bg-gray-100 text-gray-600">
+                                    <i class="fas fa-info text-xs"></i>
+                                </span>
+                            </div>
+                            <div class="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
+                                <div class="text-sm text-gray-500">
+                                    <p class="font-medium text-gray-700 inline mr-1">{{ act[6] }} {{ act[7] }}</p>
+                                    <span class="inline">{{ act[4] }}</span>
+                                </div>
+                                <div class="text-right text-xs whitespace-nowrap text-gray-400">
+                                    <time datetime="{{ act[5] }}">{{ act[5].strftime('%d %b %Y, %H:%M') if act[5] else '' }}</time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <p class="text-center py-6 text-gray-400 text-sm">No activity logs recorded yet.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Daily Task Update - Employee Portal{% endblock %}
+{% block title %}Daily Task Workspace - Employee Portal{% endblock %}
 
 {% block main_class %}p-3 w-full{% endblock %}
 
@@ -8,13 +8,13 @@
 <div class="w-full px-1">
     <!-- Tab Navigation -->
     <div class="flex border-b border-gray-200 mb-8">
-        <button onclick="switchTab('add-task-tab', 'history-tab')" id="btn-add-task"
+        <button onclick="switchTab('add-task-tab')" id="btn-add-task"
             class="py-4 px-6 text-sm font-semibold border-b-2 border-teal-600 text-teal-600 focus:outline-none transition duration-150">
             <i class="fas fa-plus-circle mr-2"></i>Add Task Update
         </button>
-        <button onclick="switchTab('history-tab', 'add-task-tab')" id="btn-history"
+        <button onclick="switchTab('history-tab')" id="btn-history"
             class="py-4 px-6 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150">
-            <i class="fas fa-history mr-2"></i> My Task
+            <i class="fas fa-history mr-2"></i>My Task Logs
         </button>
     </div>
 
@@ -23,8 +23,7 @@
     {% if messages %}
     <div class="mb-6 space-y-2">
         {% for category, message in messages %}
-        <div
-            class="p-4 rounded-md shadow-sm border-l-4 {{ 'bg-green-50 border-green-500 text-green-700' if category == 'success' else 'bg-red-50 border-red-500 text-red-700' }}">
+        <div class="p-4 rounded-md shadow-sm border-l-4 {{ 'bg-green-50 border-green-500 text-green-700' if category == 'success' else 'bg-red-50 border-red-500 text-red-700' }}">
             <div class="flex">
                 <div class="flex-shrink-0">
                     {% if category == 'success' %}
@@ -43,11 +42,10 @@
     {% endif %}
     {% endwith %}
 
-    <!-- TAB 1: Add Task Update Form (Full Page Card) -->
+    <!-- ==================== TAB 1: Add Task Update Form (Merged) ==================== -->
     <div id="add-task-tab" class="tab-content block">
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden w-full">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden w-full max-w-4xl mx-auto">
             <div class="p-8">
-                <!-- Title -->
                 <h3 class="text-2xl font-bold text-gray-800 mb-8">Add Task Update</h3>
 
                 {% if not statuses %}
@@ -62,43 +60,110 @@
                 </div>
                 {% else %}
                 <form method="POST" id="dailyTaskForm" class="space-y-6">
-                    <!-- Title & Hours in One Row -->
+                    <!-- Project Selector -->
+                    <div>
+                        <label for="form_project_id" class="block text-sm font-medium text-gray-700 mb-1">Select Project context</label>
+                        <select id="form_project_id" name="project_id" class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition bg-white">
+                            <option value="">General Update / No Project</option>
+                            {% for p in my_projects %}
+                                <option value="{{ p[0] }}" data-github="{{ p[11] or '' }}">{{ p[1] }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <!-- GitHub Repository Alert Link -->
+                        <div id="github_repo_container" class="hidden mt-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-1.5 text-blue-700">
+                                <i class="fab fa-github text-sm"></i>
+                                <span>Project Repository link detected</span>
+                            </div>
+                            <a id="github_repo_link" href="#" target="_blank" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition">
+                                Access Repo
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Row: Dynamic fields based on project choice -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                        <!-- General: Task Title -->
+                        <div id="field_task_title">
                             <label for="task_title" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
-                            <input type="text" name="task_title" id="task_title" required
+                            <input type="text" name="task_title" id="task_title"
                                 class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition"
                                 placeholder="Enter task title">
                         </div>
+
+                        <!-- Project: Assigned Task Dropdown -->
+                        <div id="field_assigned_task" class="hidden">
+                            <label for="form_task_id" class="block text-sm font-medium text-gray-700 mb-1">Assigned Task *</label>
+                            <select id="form_task_id" name="task_id" class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition bg-white">
+                                <option value="">Select a project first</option>
+                            </select>
+                        </div>
+
+                        <!-- Hours (Common) -->
                         <div>
-                            <label for="task_hours" class="block text-sm font-medium text-gray-700 mb-1">Number of Hours</label>
-                            <input type="number" name="task_hours" id="task_hours" min="1" max="24" required
+                            <label for="task_hours" class="block text-sm font-medium text-gray-700 mb-1">Number of Hours *</label>
+                            <input type="number" name="task_hours" id="task_hours" step="0.25" min="0.25" max="24" required
                                 class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition"
                                 placeholder="Enter number of hours">
                         </div>
                     </div>
 
-                    <!-- Task Description -->
+                    <!-- Row: Dynamic status / progress inputs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- General: Status -->
+                        <div id="field_general_status">
+                            <label for="project_status" class="block text-sm font-medium text-gray-700 mb-1">Project Status</label>
+                            <select name="project_status" id="project_status"
+                                class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition bg-white">
+                                {% for status in statuses %}
+                                <option value="{{ status[1] }}">{{ status[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Project: Task Progress % -->
+                        <div id="field_progress_pct" class="hidden">
+                            <label for="progress_percentage" class="block text-sm font-medium text-gray-700 mb-1">Task Progress % *</label>
+                            <select id="progress_percentage" name="progress_percentage" class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition bg-white">
+                                {% for i in range(0, 101, 10) %}
+                                    <option value="{{ i }}">{{ i }}%</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Project: Task Status Transition -->
+                        <div id="field_status_change" class="hidden">
+                            <label for="status_change" class="block text-sm font-medium text-gray-700 mb-1">Update Task Status to</label>
+                            <select id="status_change" name="status_change" class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition bg-white">
+                                <option value="">Keep current status</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="in_review">In Review (Submit for test)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Description (Common, Quill Rich Editor) -->
                     <div>
-                        <label for="task_desc" class="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
+                        <label for="task_desc" class="block text-sm font-medium text-gray-700 mb-1">Work / Task Description *</label>
                         <!-- Quill toolbar -->
                         <div id="quill-toolbar" class="border border-gray-300 rounded-t-lg bg-gray-50">
                             <span class="ql-formats">
-                                <button class="ql-bold"></button>
-                                <button class="ql-italic"></button>
-                                <button class="ql-underline"></button>
-                                <button class="ql-strike"></button>
+                                <button class="ql-bold" type="button"></button>
+                                <button class="ql-italic" type="button"></button>
+                                <button class="ql-underline" type="button"></button>
+                                <button class="ql-strike" type="button"></button>
                             </span>
                             <span class="ql-formats">
-                                <button class="ql-list" value="ordered"></button>
-                                <button class="ql-list" value="bullet"></button>
+                                <button class="ql-list" value="ordered" type="button"></button>
+                                <button class="ql-list" value="bullet" type="button"></button>
                             </span>
                             <span class="ql-formats">
-                                <button class="ql-blockquote"></button>
-                                <button class="ql-code-block"></button>
+                                <button class="ql-blockquote" type="button"></button>
+                                <button class="ql-code-block" type="button"></button>
                             </span>
                             <span class="ql-formats">
-                                <button class="ql-clean"></button>
+                                <button class="ql-clean" type="button"></button>
                             </span>
                         </div>
                         <!-- hidden textarea submitted to server -->
@@ -107,26 +172,27 @@
                         <div id="quill-editor" class="block w-full border border-t-0 border-gray-300 rounded-b-lg text-gray-900 focus:outline-none text-base bg-white" style="height: 200px;"></div>
                     </div>
 
-                    <!-- Project Status -->
-                    <div>
-                        <label for="project_status" class="block text-sm font-medium text-gray-700 mb-1">Project Status</label>
-                        <select name="project_status" id="project_status" required
-                            class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base transition bg-white">
-                            {% for status in statuses %}
-                            <option value="{{ status[1] }}">{{ status[1] }}</option>
-                            {% endfor %}
-                        </select>
+                    <!-- Project: Blockers & Tomorrow's plan -->
+                    <div id="field_project_extras" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+                        <div>
+                            <label for="blocker" class="block text-sm font-medium text-gray-700 mb-1">Blockers / Issues (Optional)</label>
+                            <textarea id="blocker" name="blocker" rows="2" class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm transition" placeholder="Any dependencies or blocking issues?"></textarea>
+                        </div>
+                        <div>
+                            <label for="tomorrow_plan" class="block text-sm font-medium text-gray-700 mb-1">Tomorrow's Plan (Optional)</label>
+                            <textarea id="tomorrow_plan" name="tomorrow_plan" rows="2" class="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm transition" placeholder="What do you plan to work on next?"></textarea>
+                        </div>
                     </div>
 
-                    <!-- Buttons -->
-                    <div class="flex items-center justify-end gap-4 pt-4">
+                    <!-- Form Buttons -->
+                    <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-100">
                         <a href="{{ url_for('employees.employee_dashboard') }}"
                             class="px-5 py-2.5 text-sm font-bold text-teal-700 hover:text-teal-900 focus:outline-none transition uppercase">
                             Cancel
                         </a>
                         <button type="submit"
                             class="px-6 py-2.5 rounded-lg shadow-md text-sm font-semibold text-white bg-teal-800 hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out">
-                            SUBMIT TASK
+                            SUBMIT UPDATE
                         </button>
                     </div>
                 </form>
@@ -135,113 +201,195 @@
         </div>
     </div>
 
-    <!-- TAB 2: My Task (Full Page Card) -->
+    <!-- ==================== TAB 2: My Task Logs (Unified History) ==================== -->
     <div id="history-tab" class="tab-content hidden">
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 w-full">
-            <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
-                <h3 class="text-xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-history mr-2 text-teal-600"></i> My Task
-                </h3>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                    Total: {{ daily_tasks|length }}
-                </span>
+        <div class="space-y-8">
+            <!-- GENERAL TASK LOGS SECTION -->
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 w-full">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-history mr-2 text-teal-600"></i> General Task Updates
+                    </h3>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800">
+                        Total: {{ daily_tasks|length }}
+                    </span>
+                </div>
+
+                <!-- Date Filters Form -->
+                <form method="GET" class="mb-6 p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-end w-full">
+                    <input type="hidden" name="tab" value="history">
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="start_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Start Date</label>
+                        <input type="date" name="start_date" id="start_date" value="{{ start_date }}"
+                            class="block w-full px-3 py-2 rounded border border-slate-300 text-xs focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-white">
+                    </div>
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="end_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">End Date</label>
+                        <input type="date" name="end_date" id="end_date" value="{{ end_date }}"
+                            class="block w-full px-3 py-2 rounded border border-slate-300 text-xs focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-white">
+                    </div>
+                    <div>
+                        <button type="submit"
+                            class="px-5 py-2 rounded shadow-sm text-xs font-bold text-white bg-teal-800 hover:bg-teal-900 transition uppercase tracking-wider flex items-center h-[34px]">
+                            <i class="fas fa-search mr-1.5"></i> Search
+                        </button>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('tasks.employee_daily_tasks', tab='history') }}"
+                            class="px-4 py-2 border border-slate-300 rounded shadow-sm text-xs font-bold text-slate-700 hover:bg-slate-50 transition uppercase tracking-wider flex items-center h-[34px]">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+
+                {% if summary_list %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sl No.</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Number of tasks</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Number of Hours</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for summary in summary_list %}
+                            <tr class="transition duration-150 hover:bg-slate-50/50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ loop.index }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{{ summary.date }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ summary.count }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">
+                                    {{ summary.total_hours }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="{{ url_for('tasks.employee_daily_task_details', task_date=summary.date_raw) }}"
+                                        class="inline-flex items-center px-3 py-1.5 border border-teal-600 rounded-lg shadow-sm text-xs font-bold text-teal-600 hover:text-white hover:bg-teal-600 focus:outline-none transition">
+                                        View Details
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-tasks text-4xl block mb-3 text-gray-300"></i>
+                    <p class="text-sm">No daily reports submitted in this date range.</p>
+                </div>
+                {% endif %}
             </div>
 
-            <!-- Date Filters Form -->
-            <form method="GET" class="mb-6 p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-end w-full">
-                <div class="flex-1 min-w-[200px]">
-                    <label for="start_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Start Date</label>
-                    <input type="date" name="start_date" id="start_date" value="{{ start_date }}"
-                        class="block w-full px-3 py-2 rounded border border-slate-300 text-xs focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-white">
+            <!-- PROJECT WORK REPORTS HISTORY SECTION -->
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 w-full">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-file-invoice mr-2 text-teal-600"></i> Project Work Logs
+                    </h3>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800">
+                        Total: {{ reports|length }}
+                    </span>
                 </div>
-                <div class="flex-1 min-w-[200px]">
-                    <label for="end_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">End Date</label>
-                    <input type="date" name="end_date" id="end_date" value="{{ end_date }}"
-                        class="block w-full px-3 py-2 rounded border border-slate-300 text-xs focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 bg-white">
-                </div>
-                <div>
-                    <button type="submit"
-                        class="px-5 py-2 rounded shadow-sm text-xs font-bold text-white bg-teal-800 hover:bg-teal-900 transition uppercase tracking-wider flex items-center h-[34px]">
-                        <i class="fas fa-search mr-1.5"></i> Search
-                    </button>
-                </div>
-                <div>
-                    <a href="{{ url_for('tasks.employee_daily_tasks') }}"
-                        class="px-4 py-2 border border-slate-300 rounded shadow-sm text-xs font-bold text-slate-700 hover:bg-slate-50 transition uppercase tracking-wider flex items-center h-[34px]">
-                        Clear
-                    </a>
-                </div>
-            </form>
 
-            {% if summary_list %}
-            <!-- Summary Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sl No.</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Number of task</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Number of Hours</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for summary in summary_list %}
-                        <tr class="transition duration-150 hover:bg-slate-50/50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ loop.index }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{{ summary.date }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ summary.count }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">
-                                {{ summary.total_hours }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ url_for('tasks.employee_daily_task_details', task_date=summary.date_raw) }}"
-                                    class="inline-flex items-center px-3 py-1.5 border border-teal-600 rounded-lg shadow-sm text-xs font-bold text-teal-600 hover:text-white hover:bg-teal-600 focus:outline-none transition">
-                                    View Details
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-12">
-                <div class="text-gray-300 mb-3 text-4xl">
-                    <i class="fas fa-tasks"></i>
+                {% if reports %}
+                <div class="overflow-x-auto text-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                                <th class="py-4 px-6">Date</th>
+                                <th class="py-4 px-6">Project / Task</th>
+                                <th class="py-4 px-6 text-center">Hours</th>
+                                <th class="py-4 px-6">Work Description</th>
+                                <th class="py-4 px-6 text-center">Progress</th>
+                                <th class="py-4 px-6">Blocker / Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50 font-medium text-gray-700 bg-white">
+                            {% for r in reports %}
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="py-4 px-6 text-gray-500 font-normal">
+                                    {{ r[4] }}
+                                </td>
+                                <td class="py-4 px-6">
+                                    <span class="font-bold text-gray-900 block">{{ r[12] }}</span>
+                                    <span class="text-xs text-gray-400 block mt-0.5">{{ r[13] }}</span>
+                                </td>
+                                <td class="py-4 px-6 text-center font-mono font-bold text-slate-800">
+                                    {{ r[5] }} hrs
+                                </td>
+                                <td class="py-4 px-6 text-gray-500 font-normal max-w-xs break-all whitespace-pre-line">
+                                    {{ r[6]|safe }}
+                                </td>
+                                <td class="py-4 px-6 text-center font-bold text-teal-600">
+                                    {{ r[7] }}%
+                                </td>
+                                <td class="py-4 px-6">
+                                    {% if r[8] %}
+                                        <span class="text-xs text-rose-600 font-bold block mb-1">Blocker: {{ r[8] }}</span>
+                                    {% endif %}
+                                    {% set r_status = r[10] %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+                                        {% if r_status == 'approved' %}bg-emerald-50 text-emerald-700
+                                        {% else %}bg-amber-50 text-amber-700{% endif %}">
+                                        {{ 'Locked' if r_status == 'approved' else 'Pending Review' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <p class="text-sm text-gray-500">No daily reports submitted in this date range.</p>
+                {% else %}
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-file-invoice text-4xl block mb-3 text-gray-300"></i>
+                    <p class="text-sm">No project work logs submitted yet.</p>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <script>
-    function switchTab(activeId, inactiveId) {
-        // Hide inactive tab, show active tab
-        document.getElementById(inactiveId).classList.replace('block', 'hidden');
+    // Tab Switching Logic
+    function switchTab(activeId) {
+        document.querySelectorAll('.tab-content').forEach(c => {
+            c.classList.add('hidden');
+            c.classList.remove('block');
+        });
         document.getElementById(activeId).classList.replace('hidden', 'block');
 
-        // Toggle tab styles
-        const btnActive = activeId === 'add-task-tab' ? 'btn-add-task' : 'btn-history';
-        const btnInactive = activeId === 'add-task-tab' ? 'btn-history' : 'btn-add-task';
+        const tabs = ['btn-add-task', 'btn-history'];
+        tabs.forEach(t => {
+            document.getElementById(t).className = "py-4 px-6 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150";
+        });
 
-        document.getElementById(btnActive).className = "py-4 px-6 text-sm font-semibold border-b-2 border-teal-600 text-teal-600 focus:outline-none transition duration-150";
-        document.getElementById(btnInactive).className = "py-4 px-6 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition duration-150";
+        const activeBtn = activeId === 'add-task-tab' ? 'btn-add-task' : 'btn-history';
+        document.getElementById(activeBtn).className = "py-4 px-6 text-sm font-semibold border-b-2 border-teal-600 text-teal-600 focus:outline-none transition duration-150";
+
+        const url = new URL(window.location);
+        url.searchParams.set('tab', activeId === 'add-task-tab' ? 'general' : 'history');
+        window.history.replaceState({}, '', url);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('start_date') || urlParams.has('end_date')) {
-            switchTab('history-tab', 'add-task-tab');
+        const activeTab = urlParams.get('tab');
+        const taskId = urlParams.get('task_id');
+        const projectId = urlParams.get('project_id');
+
+        if (activeTab === 'history') {
+            switchTab('history-tab');
+        } else {
+            switchTab('add-task-tab');
         }
 
-        // Initialize Quill Editor
+        // Initialize Quill editor for task description
         const quill = new Quill('#quill-editor', {
             theme: 'snow',
-            placeholder: 'Enter task description',
+            placeholder: 'Enter task update description...',
             modules: {
                 toolbar: '#quill-toolbar'
             }
@@ -251,15 +399,116 @@
         const form = document.getElementById('dailyTaskForm');
         if (form) {
             form.addEventListener('submit', (e) => {
-                const description = quill.root.innerHTML;
                 const textContent = quill.getText().trim();
                 if (!textContent) {
-                    alert('Please enter a task description.');
+                    alert('Please enter a description.');
                     e.preventDefault();
                     return;
                 }
-                document.getElementById('task_desc').value = description;
+                document.getElementById('task_desc').value = quill.root.innerHTML;
             });
+        }
+
+        // Dynamic project toggles & filtering logic
+        const projectSelect = document.getElementById('form_project_id');
+        const taskSelect = document.getElementById('form_task_id');
+        const githubContainer = document.getElementById('github_repo_container');
+        const githubLink = document.getElementById('github_repo_link');
+
+        // Fields to toggle
+        const fieldTaskTitle = document.getElementById('field_task_title');
+        const fieldAssignedTask = document.getElementById('field_assigned_task');
+        const fieldGeneralStatus = document.getElementById('field_general_status');
+        const fieldProgressPct = document.getElementById('field_progress_pct');
+        const fieldStatusChange = document.getElementById('field_status_change');
+        const fieldProjectExtras = document.getElementById('field_project_extras');
+
+        projectSelect.addEventListener('change', function() {
+            const pid = this.value;
+            taskSelect.innerHTML = '<option value="">Loading tasks...</option>';
+
+            // Update GitHub links
+            const selectedOption = this.options[this.selectedIndex];
+            const githubUrl = selectedOption ? selectedOption.getAttribute('data-github') : '';
+            if (githubUrl && githubUrl.trim() !== '') {
+                githubLink.href = githubUrl;
+                githubContainer.classList.remove('hidden');
+            } else {
+                githubContainer.classList.add('hidden');
+            }
+
+            if (!pid) {
+                // General Update Mode
+                fieldTaskTitle.classList.remove('hidden');
+                fieldGeneralStatus.classList.remove('hidden');
+                document.getElementById('task_title').setAttribute('required', 'required');
+                document.getElementById('project_status').setAttribute('required', 'required');
+
+                // Hide & disable project fields
+                fieldAssignedTask.classList.add('hidden');
+                fieldProgressPct.classList.add('hidden');
+                fieldStatusChange.classList.add('hidden');
+                fieldProjectExtras.classList.add('hidden');
+                taskSelect.removeAttribute('required');
+                document.getElementById('progress_percentage').removeAttribute('required');
+            } else {
+                // Project Mode
+                fieldTaskTitle.classList.add('hidden');
+                fieldGeneralStatus.classList.add('hidden');
+                document.getElementById('task_title').removeAttribute('required');
+                document.getElementById('project_status').removeAttribute('required');
+
+                // Show & require project fields
+                fieldAssignedTask.classList.remove('hidden');
+                fieldProgressPct.classList.remove('hidden');
+                fieldStatusChange.classList.remove('hidden');
+                fieldProjectExtras.classList.remove('hidden');
+                taskSelect.setAttribute('required', 'required');
+                document.getElementById('progress_percentage').setAttribute('required', 'required');
+
+                // Fetch tasks associated with this project for current employee
+                fetch('/api/projects/' + pid + '/my_tasks')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length === 0) {
+                            taskSelect.innerHTML = '<option value="">No tasks assigned in this project</option>';
+                        } else {
+                            taskSelect.innerHTML = '<option value="">Select Task</option>';
+                            data.forEach(task => {
+                                taskSelect.innerHTML += '<option value="' + task.task_id + '">' + task.title + '</option>';
+                            });
+                            // Auto-select first task if not preset
+                            if (data.length > 0 && !taskId) {
+                                taskSelect.selectedIndex = 1;
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        taskSelect.innerHTML = '<option value="">Error loading tasks</option>';
+                        console.error(err);
+                    });
+            }
+        });
+
+        // Trigger change to load defaults or parameters
+        if (projectId) {
+            projectSelect.value = projectId;
+            const event = new Event('change');
+            projectSelect.dispatchEvent(event);
+
+            if (taskId) {
+                const checkExist = setInterval(() => {
+                    if (taskSelect.querySelector('option[value="' + taskId + '"]')) {
+                        taskSelect.value = taskId;
+                        clearInterval(checkExist);
+                    }
+                }, 100);
+                setTimeout(() => clearInterval(checkExist), 3000);
+            }
+        } else {
+            // Default to General Update layout
+            const event = new Event('change');
+            projectSelect.dispatchEvent(event);
         }
     });
 </script>

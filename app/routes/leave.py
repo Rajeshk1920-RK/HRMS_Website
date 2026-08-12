@@ -126,7 +126,7 @@ def update_leave_request(req_id, action):
 
 @leave_bp.route('/employee/leave', methods=['GET', 'POST'])
 def employee_leave():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     if request.method == 'POST':
@@ -152,7 +152,7 @@ def employee_leave():
 
 @leave_bp.route('/employee/my_leave_requests')
 def employee_leave_requests():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     my_requests = db.get_leave_requests('WHERE lr.employee_id=%s', (session['user_id'],))

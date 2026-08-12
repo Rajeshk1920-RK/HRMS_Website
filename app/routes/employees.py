@@ -15,32 +15,36 @@ def admin_dashboard():
     if 'user_id' not in session or session['emp_type'] != 'admin':
         return redirect(url_for('auth.login'))
 
-    # Pagination parameters
-    page = int(request.args.get('page', 1))
-    page_size = 10
-    project_filter = request.args.get('project_filter', '')
-    status_filter = request.args.get('status_filter', '')
-    employee_filter = request.args.get('employee_filter', '')
+    stats = db.get_project_dashboard_stats()
+    
+    # Get filters
+    domain = request.args.get('domain', '').strip()
+    status = request.args.get('status', '').strip()
+    pm_id = request.args.get('pm_id', type=int)
+    priority = request.args.get('priority', '').strip()
+    
+    projects = db.get_projects_filtered(
+        domain=domain or None,
+        status=status or None,
+        pm_id=pm_id or None,
+        priority=priority or None
+    )
+    
+    # Calculate health for projects in dashboard table
+    projects_with_health = []
+    for p in projects:
+        health = db.get_project_health(p[0])
+        projects_with_health.append(list(p) + [health])
 
-    # Get paginated tasks and total task count
-    tasks, total_tasks = db.get_all_tasks_with_details_paginated(page, page_size, project_filter, status_filter, employee_filter)
     employees = db.get_employees()
-    projects = db.get_projects()
-
-    # Calculate total pages
-    total_pages = math.ceil(total_tasks / page_size)
-
-    return render_template('dashboard/admin_dashboard.html',
-                         tasks=tasks,
-                         employees=employees,
-                         projects=projects,
-                         page=page,
-                         page_size=page_size,
-                         total_tasks=total_tasks,
-                         total_pages=total_pages,
-                         project_filter=project_filter,
-                         status_filter=status_filter,
-                         employee_filter=employee_filter)
+    return render_template('projects/project_dashboard.html',
+                           stats=stats,
+                           projects=projects_with_health,
+                           employees=employees,
+                           selected_domain=domain,
+                           selected_status=status,
+                           selected_pm=pm_id,
+                           selected_priority=priority)
 
 @employees_bp.route('/admin/registration_requests')
 def registration_requests():
@@ -197,7 +201,7 @@ def add_employee():
 
 @employees_bp.route('/employee/dashboard')
 def employee_dashboard():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     profile = db.get_employee_profile(session['user_id'])

@@ -1,0 +1,282 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Project Dashboard - Project Tracking System{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Project Dashboard</h1>
+            <p class="mt-1 text-sm text-gray-500">Company-wide overview of active projects, resource metrics, and task progress.</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{{ url_for('projects.add_project') }}" 
+               class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 gap-2">
+                <i class="fas fa-plus"></i>
+                <span>Add Project</span>
+            </a>
+            <a href="{{ url_for('projects.view_projects') }}" 
+               class="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 gap-2">
+                <i class="fas fa-list"></i>
+                <span>All Projects</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Card 1: Total Projects -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Projects</span>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_projects }}</h3>
+            </div>
+            <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                <i class="fas fa-project-diagram text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Card 2: Active Projects -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Projects</span>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ stats.active_projects }}</h3>
+            </div>
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <i class="fas fa-play text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Card 3: Completed Projects -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Completed Projects</span>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ stats.completed_projects }}</h3>
+            </div>
+            <div class="p-3 bg-blue-50 text-indigo-600 rounded-xl">
+                <i class="fas fa-check-circle text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Card 4: Blocked & On Hold -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">On Hold / Blocked</span>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ stats.on_hold_projects + stats.blocked_projects }}</h3>
+            </div>
+            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                <i class="fas fa-pause-circle text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row of KPI Cards (Health & Tasks) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Delayed Projects -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between border-l-4 border-rose-500">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Delayed / Overdue</span>
+                <h3 class="text-3xl font-bold text-rose-600 mt-1">{{ stats.delayed_projects }}</h3>
+            </div>
+            <div class="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                <i class="fas fa-exclamation-triangle text-xl"></i>
+            </div>
+        </div>
+
+        <!-- At Risk Projects -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between border-l-4 border-amber-500">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">At Risk</span>
+                <h3 class="text-3xl font-bold text-amber-600 mt-1">{{ stats.at_risk_projects }}</h3>
+            </div>
+            <div class="p-3 bg-amber-50 text-amber-500 rounded-xl">
+                <i class="fas fa-shield-alt text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Total Tasks -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Tasks</span>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1">{{ stats.total_tasks }}</h3>
+            </div>
+            <div class="p-3 bg-gray-50 text-gray-600 rounded-xl">
+                <i class="fas fa-tasks text-xl"></i>
+            </div>
+        </div>
+
+        <!-- QA Pending -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">QA Pending Tasks</span>
+                <h3 class="text-3xl font-bold text-indigo-600 mt-1">{{ stats.qa_pending_tasks }}</h3>
+            </div>
+            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <i class="fas fa-vial text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 mb-8">
+        <form method="GET" action="{{ url_for('projects.project_dashboard') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <!-- Domain Filter -->
+            <div>
+                <label for="domain" class="block text-xs font-semibold text-gray-500 uppercase mb-2">Technical Domain</label>
+                <select id="domain" name="domain" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">All Domains</option>
+                    {% for d in ['IoT', 'AI/ML', 'Web Development', 'Mobile App Development', 'Embedded Systems', 'Other'] %}
+                        <option value="{{ d }}" {% if selected_domain == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label for="status" class="block text-xs font-semibold text-gray-500 uppercase mb-2">Status</label>
+                <select id="status" name="status" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">All Statuses</option>
+                    {% for st in ['Planning', 'Active', 'On Hold', 'Blocked', 'Completed', 'Cancelled'] %}
+                        <option value="{{ st }}" {% if selected_status == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- PM Filter -->
+            <div>
+                <label for="pm_id" class="block text-xs font-semibold text-gray-500 uppercase mb-2">Project Manager</label>
+                <select id="pm_id" name="pm_id" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">All Managers</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp[0] }}" {% if selected_pm == emp[0] %}selected{% endif %}>{{ emp[1] }} {{ emp[2] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Priority Filter -->
+            <div>
+                <label for="priority" class="block text-xs font-semibold text-gray-500 uppercase mb-2">Priority</label>
+                <select id="priority" name="priority" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">All Priorities</option>
+                    {% for pr in ['Low', 'Medium', 'High', 'Critical'] %}
+                        <option value="{{ pr }}" {% if selected_priority == pr %}selected{% endif %}>{{ pr }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
+                    Filter
+                </button>
+                <a href="{{ url_for('projects.project_dashboard') }}" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl text-center transition-all">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Project List Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+        <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">Project Status & Progress</h3>
+            <span class="text-xs bg-gray-200 text-gray-700 px-3 py-1 rounded-full font-medium">{{ projects|length }} Projects</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Project Name</th>
+                        <th class="py-4 px-6">Code / Type</th>
+                        <th class="py-4 px-6">Project Manager</th>
+                        <th class="py-4 px-6">Progress</th>
+                        <th class="py-4 px-6">Deadline</th>
+                        <th class="py-4 px-6">Health</th>
+                        <th class="py-4 px-6">Status</th>
+                        <th class="py-4 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for p in projects %}
+                    <tr class="hover:bg-gray-50/70 transition-colors">
+                        <td class="py-4 px-6">
+                            <a href="{{ url_for('projects.view_project', project_id=p[0]) }}" class="text-blue-600 hover:text-blue-700 font-bold block text-base">{{ p[1] }}</a>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono mr-2">{{ p[7] }}</span>
+                            <span class="text-gray-400 font-normal">{{ p[8] }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if p[15] %}
+                                <div class="flex items-center gap-2">
+                                    <div class="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                        {{ p[15][0] }}{{ p[16][0] }}
+                                    </div>
+                                    <span>{{ p[15] }} {{ p[16] }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-400">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 w-1/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-full bg-gray-100 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="--width: {{ p[12] }}%; width: var(--width);"></div>
+                                </div>
+                                <span class="text-xs font-bold text-gray-600">{{ p[12] }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ p[6].strftime('%d %b %Y') if p[6] is not string and p[6] else (p[6] if p[6] else 'No Deadline') }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set health = p[18] %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide
+                                {% if health == 'ON TRACK' %}bg-emerald-50 text-emerald-700
+                                {% elif health == 'AT RISK' %}bg-amber-50 text-amber-700
+                                {% else %}bg-rose-50 text-rose-700{% endif %}">
+                                <span class="h-1.5 w-1.5 rounded-full mr-1.5
+                                    {% if health == 'ON TRACK' %}bg-emerald-500
+                                    {% elif health == 'AT RISK' %}bg-amber-500
+                                    {% else %}bg-rose-500{% endif %}"></span>
+                                {{ health }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set status = p[4] %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                {% if status == 'Active' %}bg-blue-50 text-blue-700
+                                {% elif status == 'Completed' %}bg-emerald-50 text-emerald-700
+                                {% elif status == 'On Hold' %}bg-amber-50 text-amber-700
+                                {% elif status == 'Blocked' %}bg-rose-50 text-rose-700
+                                {% elif status == 'Cancelled' %}bg-gray-100 text-gray-700
+                                {% else %}bg-gray-50 text-gray-500{% endif %}">
+                                {{ status }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <div class="flex justify-end gap-2">
+                                <a href="{{ url_for('projects.view_project', project_id=p[0]) }}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="View details">
+                                    <i class="far fa-eye text-base"></i>
+                                </a>
+                                <a href="{{ url_for('projects.edit_project', project_id=p[0]) }}" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Edit">
+                                    <i class="far fa-edit text-base"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-folder-open text-4xl block mb-3"></i>
+                            <span>No projects found matching the filter criteria.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

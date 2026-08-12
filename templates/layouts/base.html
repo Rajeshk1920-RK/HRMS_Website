@@ -300,7 +300,7 @@
     {% set emg_missing = session.get('emg_missing') %}
     {# ───────── helper flags to light up accordions ───────── #}
     {% set employee_active = request.endpoint in ['employees.add_employee','employees.view_employees','employees.registration_requests'] %}
-    {% set project_active  = request.endpoint in ['projects.add_project','projects.view_projects','work_items.add_work_item','work_items.view_work_items','work_items.work_item_details','work_items.qa_queue','work_items.perform_qa'] %}
+    {% set project_active  = request.endpoint in ['projects.add_project', 'projects.view_projects', 'projects.view_project', 'projects.edit_project', 'tasks.view_tasks', 'tasks.add_task', 'tasks.edit_task', 'projects.qa_testing_queue', 'projects.perform_qa_test', 'projects.project_reports', 'projects.admin_work_reports'] %}
     {% set leave_active    = request.endpoint in ['leave.admin_leave_types',
                                                  'leave.admin_leave_requests',
                                                  'leave.admin_leave_summary'] %}
@@ -415,10 +415,10 @@
                         </summary>
                         <div class="sidebar-submenu space-y-0.5">
                             {{ subnavlink('Add Project','fas fa-plus','projects.add_project') }}
-                            {{ subnavlink('View Projects','fas fa-list','projects.view_projects') }}
-                            {{ subnavlink('Add Work Item','fas fa-plus-circle','work_items.add_work_item') }}
-                            {{ subnavlink('View Work Items','fas fa-tasks','work_items.view_work_items') }}
-                            {{ subnavlink('QA Testing Queue','fas fa-vial','work_items.qa_queue') }}
+                            {{ subnavlink('All Projects','fas fa-list','projects.view_projects') }}
+                            {{ subnavlink('Tasks','fas fa-tasks','tasks.view_tasks') }}
+                            {{ subnavlink('QA Testing','fas fa-vial','projects.qa_testing_queue') }}
+                            {{ subnavlink('Reports','fas fa-file-contract','projects.project_reports') }}
                         </div>
                     </details>
 
@@ -532,13 +532,20 @@
                     {% set disabled = '' %}
                     <div>
                         {{ navlink('Daily Tasks','fas fa-calendar-check','tasks.employee_daily_tasks') }}
-                        {% if session.emp_type == 'emp' %}
-                        {{ navlink('My Work Items','fas fa-tasks','work_items.my_work_items') }}
-                        {% endif %}
-                        {% if session.emp_type == 'tester' %}
-                        {{ navlink('QA Testing Queue','fas fa-vial','work_items.qa_queue') }}
-                        {{ navlink('Work Items','fas fa-tasks','work_items.view_work_items') }}
-                        {% endif %}
+                        {% set employee_project_active = request.endpoint in ['projects.my_projects', 'projects.my_project_details', 'projects.my_tasks'] %}
+                        <details class="sidebar-accordion group" {{ 'open' if employee_project_active else '' }}>
+                            <summary class="flex items-center px-4 py-3 cursor-pointer rounded-xl transition-all duration-200
+                                            {{ 'bg-gray-100 text-black font-bold shadow-sm' if employee_project_active
+                                               else 'text-black hover:bg-gray-50' }}">
+                                <i class="fas fa-project-diagram w-5 mr-3 text-base text-black"></i>
+                                <span>Project</span>
+                                <i class="fas fa-chevron-down ml-auto text-xs text-black transform transition-transform duration-300 group-open:rotate-180"></i>
+                            </summary>
+                            <div class="sidebar-submenu space-y-0.5">
+                                {{ subnavlink('My Projects','fas fa-list','projects.my_projects') }}
+                                {{ subnavlink('My Tasks','fas fa-tasks','projects.my_tasks') }}
+                            </div>
+                        </details>
                         {{ navlink('Timesheet','fas fa-calendar-alt','employees.timesheet') }}
                         {{ navlink('Manage Expense','fas fa-money-bill-wave','expenses.expense') }}
                         {{ navlink('My Expense','fas fa-list','expenses.existing_expenses') }}

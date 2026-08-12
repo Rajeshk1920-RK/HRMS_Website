@@ -331,11 +331,11 @@ class DatabaseBase:
         cursor.execute("SELECT COUNT(*) FROM tbl_task_status_master")
         if cursor.fetchone()[0] == 0:
             default_task_statuses = [
-                ("Pending", "Task has been created but not started", "#f59e0b"),
-                ("Work In Progress", "Task is currently being worked on", "#3b82f6"),
-                ("Completed", "Task has been successfully completed", "#10b981"),
-                ("Blocked", "Task is blocked by dependency or issue", "#ef4444"),
-                ("On Hold", "Task is temporarily suspended", "#8b5cf6")
+                ("pending", "Task has been created but not started", "#f59e0b"),
+                ("in_progress", "Task is currently being worked on", "#3b82f6"),
+                ("completed", "Task has been successfully completed", "#10b981"),
+                ("blocked", "Task is blocked by dependency or issue", "#ef4444"),
+                ("on_hold", "Task is temporarily suspended", "#8b5cf6")
             ]
             cursor.executemany('''
                 INSERT INTO tbl_task_status_master (name, description, color_class)
@@ -356,55 +356,6 @@ class DatabaseBase:
             ''', default_employee_statuses)
 
         conn.commit()
-        # Create tbl_task_status_master
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS tbl_task_status_master (
-                status_id SERIAL PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT,
-                color_class TEXT,
-                inserted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-
-        # Create tbl_employee_status_master
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS tbl_employee_status_master (
-                status_id SERIAL PRIMARY KEY,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT,
-                color_class TEXT,
-                inserted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-
-        # Seed default task statuses
-        cursor.execute("SELECT COUNT(*) FROM tbl_task_status_master")
-        if cursor.fetchone()[0] == 0:
-            default_task_statuses = [
-                ("Pending", "Task has been created but not started", "#f59e0b"),
-                ("Work In Progress", "Task is currently being worked on", "#3b82f6"),
-                ("Completed", "Task has been successfully completed", "#10b981"),
-                ("Blocked", "Task is blocked by dependency or issue", "#ef4444"),
-                ("On Hold", "Task is temporarily suspended", "#8b5cf6")
-            ]
-            cursor.executemany('''
-                INSERT INTO tbl_task_status_master (name, description, color_class)
-                VALUES (%s, %s, %s)
-            ''', default_task_statuses)
-
-        # Seed default employee statuses
-        cursor.execute("SELECT COUNT(*) FROM tbl_employee_status_master")
-        if cursor.fetchone()[0] == 0:
-            default_employee_statuses = [
-                ("active", "Employee is active and working", "#10b981"),
-                ("inactive", "Employee has left or is inactive", "#ef4444"),
-                ("On Leave", "Employee is currently on approved leave", "#f59e0b")
-            ]
-            cursor.executemany('''
-                INSERT INTO tbl_employee_status_master (name, description, color_class)
-                VALUES (%s, %s, %s)
-            ''', default_employee_statuses)
 
         # Create tbl_daily_task
         cursor.execute('''
@@ -553,6 +504,129 @@ class DatabaseBase:
                 FOREIGN KEY (qa_id) REFERENCES tbl_work_qa(qa_id) ON DELETE CASCADE
             )
         ''')
+
+        # Redesigned Project Management Schema and Migrations
+        # Alter tbl_project to add new fields
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS project_code TEXT UNIQUE")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS project_type TEXT")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS github_repo TEXT")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS project_manager_id INTEGER REFERENCES tbl_employee(emp_id)")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS team_lead_id INTEGER REFERENCES tbl_employee(emp_id)")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS actual_end_date DATE")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS progress_percentage INTEGER DEFAULT 0")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES tbl_employee(emp_id)")
+        cursor.execute("ALTER TABLE tbl_project ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP")
+
+        # Create tbl_project_members
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_project_members (
+                member_id SERIAL PRIMARY KEY,
+                project_id INTEGER NOT NULL REFERENCES tbl_project(project_id) ON DELETE CASCADE,
+                employee_id INTEGER NOT NULL REFERENCES tbl_employee(emp_id) ON DELETE CASCADE,
+                project_role TEXT NOT NULL,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                removed_at TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE,
+                UNIQUE (project_id, employee_id)
+            )
+        ''')
+
+        # Create tbl_project_modules
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_project_modules (
+                module_id SERIAL PRIMARY KEY,
+                project_id INTEGER NOT NULL REFERENCES tbl_project(project_id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                description TEXT,
+                module_lead_id INTEGER REFERENCES tbl_employee(emp_id),
+                start_date DATE,
+                end_date DATE,
+                status TEXT DEFAULT 'Active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Alter tbl_task
+        cursor.execute("ALTER TABLE tbl_task ADD COLUMN IF NOT EXISTS module_id INTEGER REFERENCES tbl_project_modules(module_id) ON DELETE SET NULL")
+        cursor.execute("ALTER TABLE tbl_task ADD COLUMN IF NOT EXISTS title TEXT")
+        cursor.execute("ALTER TABLE tbl_task ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES tbl_employee(emp_id)")
+        cursor.execute("ALTER TABLE tbl_task ADD COLUMN IF NOT EXISTS estimated_hours NUMERIC(5,2) DEFAULT 0.00")
+        cursor.execute("ALTER TABLE tbl_task ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP")
+        cursor.execute("ALTER TABLE tbl_task ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
+        # Backfill title if null
+        cursor.execute("UPDATE tbl_task SET title = SUBSTRING(task_desc FROM 1 FOR 50) WHERE title IS NULL")
+
+        # Create tbl_work_reports
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_work_reports (
+                report_id SERIAL PRIMARY KEY,
+                employee_id INTEGER NOT NULL REFERENCES tbl_employee(emp_id),
+                project_id INTEGER NOT NULL REFERENCES tbl_project(project_id) ON DELETE CASCADE,
+                task_id INTEGER NOT NULL REFERENCES tbl_task(task_id) ON DELETE CASCADE,
+                report_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                hours_worked NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+                work_description TEXT NOT NULL,
+                progress_percentage INTEGER DEFAULT 0,
+                blocker TEXT,
+                tomorrow_plan TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create tbl_qa_tests
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_qa_tests (
+                qa_test_id SERIAL PRIMARY KEY,
+                task_id INTEGER NOT NULL REFERENCES tbl_task(task_id) ON DELETE CASCADE,
+                tester_id INTEGER NOT NULL REFERENCES tbl_employee(emp_id),
+                test_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                expected_result TEXT,
+                actual_result TEXT,
+                result TEXT NOT NULL CHECK (result IN ('PASS', 'FAIL')),
+                comments TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create tbl_project_activity
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_project_activity (
+                activity_id SERIAL PRIMARY KEY,
+                project_id INTEGER NOT NULL REFERENCES tbl_project(project_id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES tbl_employee(emp_id),
+                activity_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create tbl_notifications
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_notifications (
+                notification_id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES tbl_employee(emp_id) ON DELETE CASCADE,
+                text TEXT NOT NULL,
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Seed new task statuses if they don't exist
+        for status_name, desc, color in [
+            ("in_review", "Task is waiting for review", "#3b82f6"),
+            ("qa_testing", "Task is in QA testing stage", "#8b5cf6")
+        ]:
+            cursor.execute("SELECT COUNT(*) FROM tbl_task_status_master WHERE name = %s", (status_name,))
+            if cursor.fetchone()[0] == 0:
+                cursor.execute(
+                    "INSERT INTO tbl_task_status_master (name, description, color_class) VALUES (%s, %s, %s)",
+                    (status_name, desc, color)
+                )
 
         conn.commit()
         conn.close()

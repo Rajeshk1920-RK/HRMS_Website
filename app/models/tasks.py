@@ -6,6 +6,7 @@ original database.py; both copies are preserved as-is (the later definition
 wins, exactly as before) to keep behaviour byte-identical.
 """
 import psycopg2
+import datetime
 
 
 class TaskMixin:
@@ -16,48 +17,108 @@ class TaskMixin:
 
         cursor.execute('''
             INSERT INTO tbl_task
-            (project_id, emp_id, task_desc, priority, status, start_date, end_date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (project_id, emp_id, task_desc, priority, status, start_date, end_date,
+             title, module_id, estimated_hours, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING task_id
         ''', (data['project_id'], data['emp_id'], data['task_desc'],
-              data['priority'], data['status'], data['start_date'], data['end_date']))
+              data['priority'], data['status'], data['start_date'], data['end_date'] or None,
+              data['title'], data.get('module_id') or None, data.get('estimated_hours', 0.0),
+              data.get('created_by')))
+
+        task_id = cursor.fetchone()[0]
+
+        # Log task creation activity
+        cursor.execute('''
+            INSERT INTO tbl_project_activity (project_id, user_id, activity_type, description)
+            VALUES (%s, %s, 'Task Created', %s)
+        ''', (data['project_id'], data.get('created_by'), f"Created task '{data['title']}' and assigned to employee."))
 
         conn.commit()
         conn.close()
+
+        # Update project progress
+        self.update_project_progress(data['project_id'])
+        return task_id
 
     def update_task(self, task_id, data):
         conn = self.get_connection()
         cursor = conn.cursor()
 
+        # Get old task status and details
+        cursor.execute("SELECT status, project_id FROM tbl_task WHERE task_id = %s", (task_id,))
+        row = cursor.fetchone()
+        old_status = row[0] if row else 'pending'
+        project_id = row[1] if row else data['project_id']
+
+        completed_at_val = None
+        if data['status'] == 'completed':
+            completed_at_val = datetime.datetime.now()
+
         cursor.execute('''
             UPDATE tbl_task
             SET project_id = %s, emp_id = %s, task_desc = %s, priority = %s,
-                status = %s, start_date = %s, end_date = %s
+                status = %s, start_date = %s, end_date = %s,
+                title = %s, module_id = %s, estimated_hours = %s,
+                completed_at = COALESCE(completed_at, %s)
             WHERE task_id = %s
         ''', (data['project_id'], data['emp_id'], data['task_desc'],
-              data['priority'], data['status'], data['start_date'], data['end_date'], task_id))
+              data['priority'], data['status'], data['start_date'], data['end_date'] or None,
+              data['title'], data.get('module_id') or None, data.get('estimated_hours', 0.0),
+              completed_at_val, task_id))
+
+        # Log status change activity if it changed
+        if old_status != data['status'] and data.get('updated_by'):
+            cursor.execute('''
+                INSERT INTO tbl_project_activity (project_id, user_id, activity_type, description)
+                VALUES (%s, %s, 'Task Status Changed', %s)
+            ''', (project_id, data['updated_by'], f"Task '{data['title']}' status changed from '{old_status}' to '{data['status']}'."))
 
         conn.commit()
         conn.close()
 
-    def delete_task(self, task_id):
+        # Update project progress
+        self.update_project_progress(project_id)
+
+    def delete_task(self, task_id, user_id=None):
         conn = self.get_connection()
         cursor = conn.cursor()
+
+        # Get project_id before deleting
+        cursor.execute("SELECT project_id, title FROM tbl_task WHERE task_id = %s", (task_id,))
+        row = cursor.fetchone()
+        project_id = row[0] if row else None
+        title = row[1] if row else ''
 
         # Delete associated task details
         cursor.execute('DELETE FROM tbl_task_details WHERE task_id = %s', (task_id,))
         cursor.execute('DELETE FROM tbl_task WHERE task_id = %s', (task_id,))
 
+        if project_id and user_id:
+            cursor.execute('''
+                INSERT INTO tbl_project_activity (project_id, user_id, activity_type, description)
+                VALUES (%s, %s, 'Task Deleted', %s)
+            ''', (project_id, user_id, f"Deleted task '{title}'."))
+
         conn.commit()
         conn.close()
+
+        if project_id:
+            self.update_project_progress(project_id)
 
     def get_task(self, task_id):
         conn = self.get_connection()
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT task_id, task_desc, project_id, emp_id, priority, status, start_date, end_date
-            FROM tbl_task
-            WHERE task_id = %s
+            SELECT t.task_id, t.task_desc, t.project_id, t.emp_id, t.priority, t.status,
+                   t.start_date, t.end_date, t.title, t.module_id, t.estimated_hours, t.created_by, t.completed_at,
+                   p.project_name, e.first_name, e.last_name, m.name AS module_name
+            FROM tbl_task t
+            JOIN tbl_project p ON t.project_id = p.project_id
+            JOIN tbl_employee e ON t.emp_id = e.emp_id
+            LEFT JOIN tbl_project_modules m ON t.module_id = m.module_id
+            WHERE t.task_id = %s
         ''', (task_id,))
 
         task = cursor.fetchone()
@@ -70,9 +131,10 @@ class TaskMixin:
 
             query = '''
                 SELECT t.task_id, t.task_desc, t.priority, t.status, t.start_date, t.end_date,
-                    p.project_name
+                    p.project_name, t.title, t.estimated_hours, m.name AS module_name
                 FROM tbl_task t
                 JOIN tbl_project p ON t.project_id = p.project_id
+                LEFT JOIN tbl_project_modules m ON t.module_id = m.module_id
                 WHERE t.emp_id = %s
             '''
             params = [emp_id]
@@ -86,9 +148,9 @@ class TaskMixin:
                 params.append(project_filter)
 
             if search_query:
-                query += ' AND (t.task_desc LIKE %s OR p.project_name LIKE %s)'
+                query += ' AND (t.task_desc LIKE %s OR p.project_name LIKE %s OR t.title LIKE %s)'
                 search_term = f'%{search_query}%'
-                params.extend([search_term, search_term])
+                params.extend([search_term, search_term, search_term])
 
             query += ' ORDER BY t.priority DESC, t.start_date'
 
@@ -104,16 +166,18 @@ class TaskMixin:
         # Build the base query
         query = '''
             SELECT t.task_id, t.task_desc, t.priority, t.status, t.start_date, t.end_date,
-                   p.project_name, e.first_name, e.last_name
+                   p.project_name, e.first_name, e.last_name, t.title, t.estimated_hours, m.name AS module_name
             FROM tbl_task t
             JOIN tbl_project p ON t.project_id = p.project_id
             JOIN tbl_employee e ON t.emp_id = e.emp_id
+            LEFT JOIN tbl_project_modules m ON t.module_id = m.module_id
         '''
         count_query = '''
             SELECT COUNT(*)
             FROM tbl_task t
             JOIN tbl_project p ON t.project_id = p.project_id
             JOIN tbl_employee e ON t.emp_id = e.emp_id
+            LEFT JOIN tbl_project_modules m ON t.module_id = m.module_id
         '''
         params = []
         conditions = []
@@ -129,9 +193,9 @@ class TaskMixin:
             conditions.append("e.first_name || ' ' || e.last_name = %s")
             params.append(employee_filter)
         if search_query:
-            conditions.append("(t.task_desc LIKE %s OR p.project_name LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)")
+            conditions.append("(t.task_desc LIKE %s OR p.project_name LIKE %s OR t.title LIKE %s OR (e.first_name || ' ' || e.last_name) LIKE %s)")
             search_term = f'%{search_query}%'
-            params.extend([search_term, search_term, search_term])
+            params.extend([search_term, search_term, search_term, search_term])
 
         if conditions:
             condition_str = ' WHERE ' + ' AND '.join(conditions)
@@ -457,22 +521,41 @@ class TaskMixin:
 
     # ========== JIRA-LIKE TRACKING & REPORTS ====================================
 
-    def update_task_status_only(self, task_id, status):
+    def update_task_status_only(self, task_id, status, user_id=None):
         conn = self.get_connection()
         cursor = conn.cursor()
+
+        # Fetch current status, title, project_id
+        cursor.execute("SELECT status, title, project_id FROM tbl_task WHERE task_id = %s", (task_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return
+        old_status, title, project_id = row
+
+        completed_at = None
+        if status == 'completed':
+            completed_at = datetime.datetime.now()
+
         cursor.execute('''
             UPDATE tbl_task
-            SET status = %s
+            SET status = %s,
+                completed_at = %s,
+                end_date = CASE WHEN %s = 'completed' THEN CURRENT_DATE ELSE end_date END
             WHERE task_id = %s
-        ''', (status, task_id))
-        if status == 'completed':
+        ''', (status, completed_at, status, task_id))
+
+        if old_status != status and user_id:
             cursor.execute('''
-                UPDATE tbl_task
-                SET end_date = CURRENT_DATE
-                WHERE task_id = %s
-            ''', (task_id,))
+                INSERT INTO tbl_project_activity (project_id, user_id, activity_type, description)
+                VALUES (%s, %s, 'Task Status Changed', %s)
+            ''', (project_id, user_id, f"Task '{title}' status changed from '{old_status}' to '{status}'."))
+
         conn.commit()
         conn.close()
+
+        # Update project progress
+        self.update_project_progress(project_id)
 
     def get_recent_task_activities(self, limit=50, emp_id=None, project_filter='', status_filter='', employee_filter='', search_query=''):
         conn = self.get_connection()

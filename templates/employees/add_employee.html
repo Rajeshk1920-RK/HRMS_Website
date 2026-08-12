@@ -115,6 +115,7 @@
                     <select name="emp_type" id="emp_type"
                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
                         <option value="emp" {% if prefill.emp_type == 'emp' %}selected{% endif %}>Employee</option>
+                        <option value="tester" {% if prefill.emp_type == 'tester' %}selected{% endif %}>Tester</option>
                         <option value="admin" {% if prefill.emp_type == 'admin' %}selected{% endif %}>Admin</option>
                     </select>
                 </div>

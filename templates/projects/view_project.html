@@ -2,306 +2,642 @@
 
 {% block title %}Project Details - Project Tracking System{% endblock %}
 
-{% block main_class %}p-3 w-full{% endblock %}
-
 {% block content %}
-<div class="w-full px-1">
-    <!-- Header -->
-    <div class="mb-8 flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">Project Details</h1>
-        <a href="{{ url_for('projects.view_projects') }}"
-           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            <i class="fas fa-arrow-left mr-2"></i>Back to Projects
+<div class="container mx-auto px-4 py-6">
+    <!-- Header Back link -->
+    <div class="mb-4">
+        <a href="{{ url_for('projects.project_dashboard') }}" class="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
     </div>
 
-    <!-- Project Information Card -->
-    <div class="bg-white shadow rounded-lg mb-8">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4 text-center">
-                <i class="fas fa-project-diagram mr-2"></i>Project Information
-            </h3>
+    <!-- Project Header Workspace Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-mono font-bold">{{ project[7] }}</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg font-bold">{{ project[8] }}</span>
+                    {% set p_health = health %}
+                    <span class="text-xs px-2.5 py-1 rounded-lg font-bold
+                        {% if p_health == 'ON TRACK' %}bg-emerald-50 text-emerald-700
+                        {% elif p_health == 'AT RISK' %}bg-amber-50 text-amber-700
+                        {% else %}bg-rose-50 text-rose-700{% endif %}">
+                        {{ p_health }}
+                    </span>
+                </div>
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ project[1] }}</h1>
+                <div class="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-gray-500 font-medium">
+                    <div>
+                        <i class="far fa-user text-gray-400 mr-1.5"></i>
+                        <span>Manager: <strong>{{ project[15] }} {{ project[16] }}</strong></span>
+                    </div>
+                    <div>
+                        <i class="far fa-calendar-alt text-gray-400 mr-1.5"></i>
+                        <span>Start: <strong>{{ project[5].strftime('%d %b %Y') if project[5] is not string and project[5] else project[5] }}</strong></span>
+                    </div>
+                    <div>
+                        <i class="far fa-clock text-gray-400 mr-1.5"></i>
+                        <span>Deadline: <strong>{{ project[6].strftime('%d %b %Y') if project[6] is not string and project[6] else project[6] }}</strong></span>
+                    </div>
+                    {% if project[19] %}
+                    <div>
+                        <i class="fab fa-github text-gray-400 mr-1.5"></i>
+                        <a href="{{ project[19] }}" target="_blank" class="hover:text-blue-600 font-bold transition">GitHub Repository</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress & Status Info -->
+            <div class="flex items-center gap-6 w-full lg:w-auto">
+                <div class="w-full lg:w-48 space-y-1.5">
+                    <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Project Progress</span>
+                    <div class="flex items-center gap-3">
+                        <div class="w-full bg-gray-100 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="--width: {{ project[12] }}%; width: var(--width);"></div>
+                        </div>
+                        <span class="text-sm font-extrabold text-gray-700">{{ project[12] }}%</span>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block mb-1">Status</span>
+                    {% set status = project[4] %}
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-xl text-sm font-bold shadow-sm
+                        {% if status == 'Active' %}bg-blue-600 text-white
+                        {% elif status == 'Completed' %}bg-emerald-600 text-white
+                        {% elif status == 'On Hold' %}bg-amber-500 text-white
+                        {% elif status == 'Blocked' %}bg-rose-600 text-white
+                        {% elif status == 'Cancelled' %}bg-gray-500 text-white
+                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-gray-200 mb-8 overflow-x-auto whitespace-nowrap">
+        <nav class="flex gap-8 text-sm font-semibold pb-1">
+            {% for tab in ['overview', 'team', 'modules', 'tasks', 'qa testing', 'activity', 'reports'] %}
+                {% set canonical_tab = tab.replace(' ', '_') %}
+                <a href="{{ url_for('projects.view_project', project_id=project[0], tab=canonical_tab) }}"
+                   class="pb-4 px-1 border-b-2 transition-all duration-200 uppercase tracking-wide text-xs
+                          {{ 'border-blue-600 text-blue-600 font-bold' if active_tab == canonical_tab
+                             else 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300' }}">
+                    <i class="{% if tab == 'overview' %}fas fa-info-circle
+                              {% elif tab == 'team' %}fas fa-users
+                              {% elif tab == 'modules' %}fas fa-cubes
+                              {% elif tab == 'tasks' %}fas fa-tasks
+                              {% elif tab == 'qa testing' %}fas fa-vial
+                              {% elif tab == 'activity' %}fas fa-history
+                              {% else %}fas fa-file-contract{% endif %} mr-2 text-sm"></i>
+                    {{ tab }}
+                </a>
+            {% endfor %}
+        </nav>
+    </div>
+
+    <!-- ==================== TAB CONTENT: OVERVIEW ==================== -->
+    {% if active_tab == 'overview' %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Basic Info Details (2 Cols) -->
+        <div class="lg:col-span-2 space-y-8">
             
-            <!-- Project Description -->
-            <div class="mb-6">
-                <h4 class="text-sm font-medium text-gray-500 mb-2">Project Description</h4>
-                <div class="prose prose-sm max-w-none text-gray-900 ql-editor" id="projectDescription"></div>
+            <!-- Description -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Project Description</h3>
+                <p class="text-gray-700 leading-relaxed text-sm whitespace-pre-line">{{ project[3] or 'No description provided.' }}</p>
             </div>
 
-            <!-- Other Project Information -->
-            <div class="grid grid-cols-3 gap-4">
-                <div class="flex items-center space-x-2">
-                    <h4 class="text-sm font-medium text-gray-500">Project Name:</h4>
-                    <p class="text-sm text-gray-900">{{ project[1] }}</p>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <h4 class="text-sm font-medium text-gray-500">Priority:</h4>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        {% if project[2] == 'high' %}bg-red-100 text-red-800
-                        {% elif project[2] == 'medium' %}bg-yellow-100 text-yellow-800
-                        {% else %}bg-green-100 text-green-800{% endif %}">
-                        {{ project[2]|title }}
-                    </span>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <h4 class="text-sm font-medium text-gray-500">Status:</h4>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        {% if project[4] == 'active' %}bg-green-100 text-green-800
-                        {% elif project[4] == 'completed' %}bg-blue-100 text-blue-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ project[4]|replace('_', ' ')|title }}
-                    </span>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <h4 class="text-sm font-medium text-gray-500">Start Date:</h4>
-                    <p class="text-sm text-gray-900">{{ project[5] if project[5] else 'Not Set' }}</p>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <h4 class="text-sm font-medium text-gray-500">End Date:</h4>
-                    <p class="text-sm text-gray-900">{{ project[6] if project[6] else 'Not Set' }}</p>
+            <!-- Project Details -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Project Information Details</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                    <div>
+                        <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Priority</span>
+                        <span class="font-bold text-gray-900 mt-1 block">{{ project[2] }}</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Team Lead</span>
+                        <span class="font-bold text-gray-900 mt-1 block">{% if project[17] %}{{ project[17] }} {{ project[18] }}{% else %}None Assigned{% endif %}</span>
+                    </div>
+                    {% if project[19] %}
+                    <div class="sm:col-span-2">
+                        <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">GitHub Repository</span>
+                        <a href="{{ project[19] }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-bold mt-1 inline-flex items-center gap-1.5 transition">
+                            <i class="fab fa-github text-base"></i>
+                            <span>{{ project[19] }}</span>
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-6">
-                <a href="{{ url_for('projects.edit_project', project_id=project[0]) }}"
-                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                    Edit Project
+            <!-- Files list -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-50 pb-3">
+                    <h3 class="text-lg font-bold text-gray-900">Project Files</h3>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold">{{ files|length }} Files</span>
+                </div>
+                {% if files %}
+                <ul class="divide-y divide-gray-50 text-sm">
+                    {% for file in files %}
+                    <li class="py-3 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                <i class="far fa-file-alt text-lg"></i>
+                            </div>
+                            <div>
+                                <a href="/{{ file[3] }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-bold block">{{ file[2] }}</a>
+                                <span class="text-xs text-gray-400 font-normal">Uploaded: {{ file[6].strftime('%d %b %Y, %H:%M') if file[6] else '' }} | {{ (file[5]/1024)|round(1) }} KB</span>
+                            </div>
+                        </div>
+                        {% if session['emp_type'] == 'admin' %}
+                        <a href="{{ url_for('projects.delete_project_file', file_id=file[0]) }}" 
+                           class="text-rose-600 hover:text-rose-700 font-bold text-xs p-1">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </a>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-center py-6 text-gray-400 text-sm">No project files uploaded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Side: Stats & Tech Stack (1 Col) -->
+        <div class="space-y-8">
+            <!-- Task Stats summary -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Task Status Summary</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="fas fa-tasks mr-2 text-gray-400"></i>Total Tasks</span>
+                        <span class="font-extrabold text-gray-900">{{ stats.total }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="far fa-circle mr-2 text-amber-500"></i>Todo</span>
+                        <span class="font-extrabold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">{{ stats.todo }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="fas fa-spinner mr-2 text-blue-500 spin"></i>In Progress</span>
+                        <span class="font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{{ stats.in_progress }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="far fa-eye mr-2 text-indigo-500"></i>In Review</span>
+                        <span class="font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{{ stats.in_review }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="fas fa-vial mr-2 text-purple-500"></i>QA Testing</span>
+                        <span class="font-extrabold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{{ stats.qa }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="fas fa-check-circle mr-2 text-emerald-500"></i>Completed</span>
+                        <span class="font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{{ stats.completed }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-gray-500 font-semibold"><i class="fas fa-exclamation-circle mr-2 text-rose-500"></i>Blocked</span>
+                        <span class="font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">{{ stats.blocked }}</span>
+                    </div>
+                </div>
+            </div>
+
+
+
+            {% if session['emp_type'] == 'admin' %}
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-3">
+                <h3 class="text-base font-bold text-gray-900 mb-3">Project Actions</h3>
+                <a href="{{ url_for('projects.edit_project', project_id=project[0]) }}" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition gap-2">
+                    <i class="far fa-edit"></i> Edit Details
+                </a>
+                <a href="{{ url_for('projects.archive_project', project_id=project[0]) }}" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition gap-2" onclick="return confirm('Archive this project?');">
+                    <i class="fas fa-archive"></i> Archive Project
                 </a>
             </div>
+            {% endif %}
         </div>
     </div>
 
-    {% if metrics %}
-    <!-- Project Metrics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-blue-500">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Work Items</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_tasks if metrics.total_tasks is defined else (metrics.get('total_tasks', 0) if metrics is mapping else 0) }}</h3>
+    <!-- ==================== TAB CONTENT: TEAM ==================== -->
+    {% elif active_tab == 'team' %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Members List (2 Cols) -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <h3 class="text-lg font-bold text-gray-900">Project Members</h3>
+                <span class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold">{{ members|length }} Team Size</span>
             </div>
-            <i class="fas fa-tasks text-3xl text-gray-300"></i>
-        </div>
-        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-purple-500">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Estimated Hours</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_hours if metrics.total_hours is defined else (metrics.get('total_hours', 0) if metrics is mapping else 0) }} hrs</h3>
-            </div>
-            <i class="fas fa-clock text-3xl text-gray-300"></i>
-        </div>
-        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-green-500">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1st QA Passed</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.first_qa_passed if metrics.first_qa_passed is defined else (metrics.get('first_qa_passed', 0) if metrics is mapping else 0) }}</h3>
-            </div>
-            <i class="fas fa-check-double text-3xl text-gray-300"></i>
-        </div>
-        <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-red-500">
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">QA Failed Attempts</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.qa_failed if metrics.qa_failed is defined else (metrics.get('qa_failed', 0) if metrics is mapping else 0) }}</h3>
-            </div>
-            <i class="fas fa-exclamation-triangle text-3xl text-gray-300"></i>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Project Attachments Section -->
-    <div class="bg-white shadow rounded-lg mb-8">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-folder-open text-indigo-600 mr-2"></i>Project Attachments & Files (BOM, Images, Documents)
-                {% if files %}
-                <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ files|length }}</span>
-                {% endif %}
-            </h3>
-
-            {% if files %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {% for f in files %}
-                <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-gray-50/50 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center space-x-3 mb-2">
-                            {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] %}
-                            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                                <i class="fas fa-file-image text-xl"></i>
-                            </div>
-                            {% elif f[4] in ['zip', 'rar', '7z', 'tar', 'gz'] %}
-                            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
-                                <i class="fas fa-file-archive text-xl"></i>
-                            </div>
-                            {% elif f[4] == 'pdf' %}
-                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
-                                <i class="fas fa-file-pdf text-xl"></i>
-                            </div>
-                            {% elif f[4] in ['txt', 'csv', 'log', 'json', 'md'] %}
-                            <div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 flex-shrink-0">
-                                <i class="fas fa-file-alt text-xl"></i>
-                            </div>
-                            {% else %}
-                            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
-                                <i class="fas fa-file text-xl"></i>
-                            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                            <th class="py-4 px-6">Employee</th>
+                            <th class="py-4 px-6">Project Role</th>
+                            <th class="py-4 px-6">Joined Date</th>
+                            {% if session['emp_type'] == 'admin' %}
+                            <th class="py-4 px-6 text-right">Actions</th>
                             {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                        {% for m in members %}
+                        <tr class="hover:bg-gray-50/50">
+                            <td class="py-4 px-6 flex items-center gap-3">
+                                <div class="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                    {{ m[6][0] }}{{ m[7][0] }}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-gray-900">{{ m[6] }} {{ m[7] }}</span>
+                                    <span class="text-xs text-gray-400 block font-normal">{{ m[8] }}</span>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="bg-gray-100 text-gray-800 text-xs px-2.5 py-1 rounded-lg font-bold">{{ m[3] }}</span>
+                            </td>
+                            <td class="py-4 px-6 text-gray-500 font-normal">
+                                {{ m[4].strftime('%d %b %Y') if m[4] else '' }}
+                            </td>
+                            {% if session['emp_type'] == 'admin' %}
+                            <td class="py-4 px-6 text-right">
+                                <form method="POST" action="{{ url_for('projects.remove_member', project_id=project[0], employee_id=m[2]) }}" class="inline-block">
+                                    <button type="submit" class="text-rose-600 hover:text-rose-700 text-xs font-bold transition-all p-1" onclick="return confirm('Remove employee from project?');">
+                                        <i class="fas fa-user-minus"></i> Remove
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-                            <div class="truncate">
-                                <h4 class="text-sm font-semibold text-gray-900 truncate" title="{{ f[2] }}">{{ f[2] }}</h4>
-                                <p class="text-xs text-gray-500">Size: {{(f[5] / 1024)|round(1)}} KB</p>
-                            </div>
+        <!-- Add Team Member Form Panel (1 Col) -->
+        {% if session['emp_type'] == 'admin' %}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-max">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-2">Add Team Member</h3>
+            <form method="POST" action="{{ url_for('projects.add_member', project_id=project[0]) }}" class="space-y-4 text-sm">
+                <div>
+                    <label for="employee_id" class="block font-semibold text-gray-500 uppercase text-xs mb-2">Employee</label>
+                    <select id="employee_id" name="employee_id" required class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="">Select Employee</option>
+                        {% for emp in employees %}
+                            <option value="{{ emp[0] }}">{{ emp[1] }} {{ emp[2] }} ({{ emp[11] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="project_role" class="block font-semibold text-gray-500 uppercase text-xs mb-2">Project Role</label>
+                    <select id="project_role" name="project_role" required class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="Developer">Developer</option>
+                        <option value="Backend Developer">Backend Developer</option>
+                        <option value="Frontend Developer">Frontend Developer</option>
+                        <option value="Mobile Developer">Mobile Developer</option>
+                        <option value="AI/ML Engineer">AI/ML Engineer</option>
+                        <option value="IoT Engineer">IoT Engineer</option>
+                        <option value="Embedded Engineer">Embedded Engineer</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="QA Tester">QA Tester</option>
+                        <option value="Team Lead">Team Lead</option>
+                        <option value="Project Manager">Project Manager</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition">
+                    Assign to Project
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ==================== TAB CONTENT: MODULES ==================== -->
+    {% elif active_tab == 'modules' %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Modules List (2 Cols) -->
+        <div class="lg:col-span-2 space-y-6">
+            {% if modules %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {% for m in modules %}
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between hover:shadow-md transition">
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-start">
+                            <h4 class="text-lg font-bold text-gray-900">{{ m[2] }}</h4>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold">{{ m[7] }}</span>
                         </div>
-
-                        {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
-                        <div class="mt-2 mb-2 rounded overflow-hidden border border-gray-200 bg-white max-h-36 flex justify-center items-center">
-                            <img src="{{ url_for('static', filename=f[3]) }}" alt="{{ f[2] }}" class="object-cover max-h-36 w-full">
+                        <p class="text-xs text-gray-500 line-clamp-2">{{ m[3] or 'No description provided.' }}</p>
+                        <div class="pt-4 border-t border-gray-50 flex flex-col gap-1.5 text-xs text-gray-500">
+                            <div><i class="far fa-user text-gray-400 mr-1.5"></i>Lead: <strong class="text-gray-700">{{ m[8] }} {{ m[9] }} if m[8] else 'Unassigned'</strong></div>
+                            <div><i class="far fa-calendar-alt text-gray-400 mr-1.5"></i>Start: <strong class="text-gray-700">{{ m[5] if m[5] else 'N/A' }}</strong></div>
+                            <div><i class="far fa-clock text-gray-400 mr-1.5"></i>End: <strong class="text-gray-700">{{ m[6] if m[6] else 'N/A' }}</strong></div>
                         </div>
-                        {% endif %}
                     </div>
-
-                    <div class="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
-                        <a href="{{ url_for('static', filename=f[3]) }}" target="_blank"
-                           class="inline-flex items-center text-indigo-600 hover:text-indigo-900 font-medium bg-indigo-50 px-2 py-1 rounded">
-                            <i class="fas fa-eye mr-1"></i>View / Open
-                        </a>
-                        <a href="{{ url_for('static', filename=f[3]) }}" download="{{ f[2] }}"
-                           class="inline-flex items-center text-green-600 hover:text-green-900 font-medium bg-green-50 px-2 py-1 rounded">
-                            <i class="fas fa-download mr-1"></i>Download
-                        </a>
+                    {% if session['emp_type'] == 'admin' %}
+                    <div class="mt-6 flex justify-end gap-2 border-t border-gray-50 pt-4">
+                        <!-- Edit inline toggle logic or modal toggle -->
+                        <form method="POST" action="{{ url_for('projects.archive_module', project_id=project[0], module_id=m[0]) }}" class="inline">
+                            <button type="submit" class="text-rose-600 hover:text-rose-700 text-xs font-bold p-1" onclick="return confirm('Archive module?');">
+                                <i class="fas fa-archive"></i> Archive
+                            </button>
+                        </form>
                     </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-gray-500 italic">No files or attachments uploaded for this project yet.</p>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-400">
+                <i class="fas fa-cubes text-4xl block mb-3 text-gray-300"></i>
+                <span>No modules created for this project yet.</span>
+            </div>
             {% endif %}
+        </div>
+
+        <!-- Add Module Panel (1 Col) -->
+        {% if session['emp_type'] == 'admin' %}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-max">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-2">Add Module</h3>
+            <form method="POST" action="{{ url_for('projects.add_module', project_id=project[0]) }}" class="space-y-4 text-sm">
+                <div>
+                    <label for="name" class="block font-semibold text-gray-500 uppercase text-xs mb-2">Module Name *</label>
+                    <input type="text" id="name" name="name" required class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="e.g. Battery Management System">
+                </div>
+                <div>
+                    <label for="description" class="block font-semibold text-gray-500 uppercase text-xs mb-2">Description</label>
+                    <textarea id="description" name="description" rows="3" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Scope of the module..."></textarea>
+                </div>
+                <div>
+                    <label for="module_lead_id" class="block font-semibold text-gray-500 uppercase text-xs mb-2">Module Lead (Optional)</label>
+                    <select id="module_lead_id" name="module_lead_id" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="">Select Module Lead</option>
+                        {% for mem in members %}
+                            <option value="{{ mem[2] }}">{{ mem[6] }} {{ mem[7] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="start_date" class="block font-semibold text-gray-500 uppercase text-xs mb-2">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="end_date" class="block font-semibold text-gray-500 uppercase text-xs mb-2">End Date</label>
+                        <input type="date" id="end_date" name="end_date" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition">
+                    Create Module
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ==================== TAB CONTENT: TASKS ==================== -->
+    {% elif active_tab == 'tasks' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">Project Tasks</h3>
+            {% if session['emp_type'] == 'admin' %}
+            <a href="{{ url_for('tasks.add_task') }}?project_id={{ project[0] }}" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition">
+                <i class="fas fa-plus"></i> Add Task
+            </a>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Task Title</th>
+                        <th class="py-4 px-6">Module</th>
+                        <th class="py-4 px-6">Assignee</th>
+                        <th class="py-4 px-6">Priority</th>
+                        <th class="py-4 px-6">Hours</th>
+                        <th class="py-4 px-6">Deadline</th>
+                        <th class="py-4 px-6">Status</th>
+                        {% if session['emp_type'] == 'admin' %}
+                        <th class="py-4 px-6 text-right">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for t in tasks %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-gray-900 block text-base">{{ t[10] or t[1] }}</span>
+                            <span class="text-xs text-gray-400 font-normal line-clamp-1 mt-0.5">{{ t[1] }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ t[12] or 'Unassigned' }}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center gap-2">
+                                <div class="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                                    {{ t[8][0] }}{{ t[9][0] }}
+                                </div>
+                                <span>{{ t[8] }} {{ t[9] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set priority = t[4] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+                                {% if priority == 'Critical' %}bg-rose-50 text-rose-700
+                                {% elif priority == 'High' %}bg-amber-50 text-amber-700
+                                {% elif priority == 'Medium' %}bg-blue-50 text-blue-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ priority }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 font-mono text-gray-500 font-normal">
+                            {{ t[11] }} hrs
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ t[7].strftime('%d %b %Y') if t[7] is not string and t[7] else t[7] }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set t_status = t[5] %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                {% if t_status == 'completed' %}bg-emerald-50 text-emerald-700
+                                {% elif t_status == 'in_progress' %}bg-blue-50 text-blue-700
+                                {% elif t_status == 'in_review' %}bg-purple-50 text-purple-700
+                                {% elif t_status == 'qa_testing' %}bg-indigo-50 text-indigo-700
+                                {% elif t_status == 'blocked' %}bg-rose-50 text-rose-700
+                                {% else %}bg-gray-50 text-gray-500{% endif %}">
+                                {{ t_status }}
+                            </span>
+                        </td>
+                        {% if session['emp_type'] == 'admin' %}
+                        <td class="py-4 px-6 text-right">
+                            <div class="flex justify-end gap-2">
+                                <a href="{{ url_for('tasks.edit_task', task_id=t[0]) }}" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Edit">
+                                    <i class="far fa-edit text-sm"></i>
+                                </a>
+                                <a href="{{ url_for('tasks.delete_task', task_id=t[0]) }}" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition" 
+                                   onclick="return confirm('Delete this task?');" title="Delete">
+                                    <i class="fas fa-trash-alt text-sm"></i>
+                                </a>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-tasks text-4xl block mb-3 text-gray-300"></i>
+                            <span>No tasks created for this project yet.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Associated Tasks Section -->
-    <div class="bg-white shadow rounded-lg mb-8">
-        <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Associated Tasks</h3>
-            {% if tasks %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Description</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for task in tasks %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task[1][:50]|safe }}{% if task[1]|length > 50 %}...{% endif %}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task[8] if task|length > 8 else '' }} {{ task[9] if task|length > 9 else '' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if task[4] == 'high' %}bg-red-100 text-red-800
-                                    {% elif task[4] == 'medium' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ task[4]|title if task|length > 4 and task[4] else 'Normal' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if task[5] == 'completed' %}bg-green-100 text-green-800
-                                    {% elif task[5] == 'in_progress' %}bg-blue-100 text-blue-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ task[5]|replace('_', ' ')|title if task|length > 5 and task[5] else 'Pending' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div>Start: {{ task[6] if task|length > 6 else 'Not set' }}</div>
-                                <div>End: {{ task[7] if task|length > 7 and task[7] else 'Not set' }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ url_for('tasks.show_task_details', task_id=task[0]) }}"
-                                   class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition duration-200">
-                                    <i class="fas fa-eye mr-1"></i>View
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-gray-500 italic">No tasks associated with this project.</p>
-            {% endif %}
+    <!-- ==================== TAB CONTENT: QA TESTING ==================== -->
+    {% elif active_tab == 'qa_testing' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-900">QA Verification Logs</h3>
+            <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold">{{ qa_history|length }} Reports</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-400 font-semibold text-xs border-b border-gray-100">
+                        <th class="py-4 px-6">Task Title</th>
+                        <th class="py-4 px-6">Tester</th>
+                        <th class="py-4 px-6">Test Date</th>
+                        <th class="py-4 px-6">Result</th>
+                        <th class="py-4 px-6">Comments / Description</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                    {% for q in qa_history %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="py-4 px-6">
+                            <span class="font-bold text-gray-900 block text-base">{{ q[9] }}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span>{{ q[11] }} {{ q[12] }}</span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal">
+                            {{ q[3].strftime('%d %b %Y') if q[3] is not string and q[3] else q[3] }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% set res = q[6] %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-xl text-xs font-bold
+                                {% if res == 'PASS' %}bg-emerald-50 text-emerald-700
+                                {% else %}bg-rose-50 text-rose-700{% endif %}">
+                                <i class="fas {{ 'fa-check' if res == 'PASS' else 'fa-times' }} mr-1"></i>
+                                {{ res }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-gray-500 font-normal max-w-sm break-words">
+                            {{ q[7] or 'No comments provided.' }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-12 text-gray-400">
+                            <i class="fas fa-vial text-4xl block mb-3 text-gray-300"></i>
+                            <span>No QA verification records logged yet.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Associated Work Items Section -->
-    <div class="bg-white shadow rounded-lg mt-8">
-        <div class="px-4 py-5 sm:p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Work Items / Task Workflow</h3>
-            </div>
-            {% if work_items %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Est. Hours</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for item in work_items %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ item[1] if item|length > 1 else item[0] }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900 font-medium max-w-xs truncate">{{ item[4] if item|length > 4 else '-' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[12] if item|length > 12 else '' }} {{ item[13] if item|length > 13 else '' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if item|length > 10 and item[10] == 'New' %}bg-yellow-100 text-yellow-800
-                                    {% elif item|length > 10 and item[10] == 'Active' %}bg-blue-100 text-blue-800
-                                    {% elif item|length > 10 and item[10] == 'Testing' %}bg-purple-100 text-purple-800
-                                    {% elif item|length > 10 and item[10] == 'UAT' %}bg-orange-100 text-orange-800
-                                    {% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ item[10] if item|length > 10 else 'Active' }}
+    <!-- ==================== TAB CONTENT: ACTIVITY ==================== -->
+    {% elif active_tab == 'activity' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-6 border-b border-gray-50 pb-3">Project History Log</h3>
+        
+        {% if activity %}
+        <div class="flow-root">
+            <ul class="-mb-8">
+                {% for act in activity %}
+                <li>
+                    <div class="relative pb-8">
+                        {% if not loop.last %}
+                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                        {% endif %}
+                        <div class="relative flex space-x-3">
+                            <!-- Icon -->
+                            <div>
+                                <span class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white
+                                    {% if 'Created' in act[3] %}bg-blue-100 text-blue-600
+                                    {% elif 'Member' in act[3] or 'Employee' in act[3] %}bg-indigo-100 text-indigo-600
+                                    {% elif 'QA Passed' in act[3] %}bg-emerald-100 text-emerald-600
+                                    {% elif 'QA Failed' in act[3] %}bg-rose-100 text-rose-600
+                                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                    <i class="{% if 'Created' in act[3] %}fas fa-plus
+                                              {% elif 'Member' in act[3] or 'Employee' in act[3] %}fas fa-user
+                                              {% elif 'QA Passed' in act[3] %}fas fa-check
+                                              {% elif 'QA Failed' in act[3] %}fas fa-times
+                                              {% else %}fas fa-info{% endif %} text-xs"></i>
                                 </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[7] if item|length > 7 else 0 }} hrs</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {% if item|length > 9 and item[9] and item[9].strftime is defined %}
-                                    {{ item[9].strftime('%d-%b-%Y') }}
-                                {% else %}
-                                    {{ item[9] if item|length > 9 and item[9] else 'Not set' }}
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
-                                   class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition duration-200">
-                                    <i class="fas fa-eye mr-1"></i>View
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                            <!-- Content -->
+                            <div class="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
+                                <div class="text-sm text-gray-500">
+                                    <p class="font-medium text-gray-700 inline mr-1">{{ act[6] }} {{ act[7] }}</p>
+                                    <span class="inline">{{ act[4] }}</span>
+                                </div>
+                                <div class="text-right text-xs whitespace-nowrap text-gray-400">
+                                    <time datetime="{{ act[5] }}">{{ act[5].strftime('%d %b %Y, %H:%M') if act[5] else '' }}</time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <p class="text-center py-6 text-gray-400 text-sm">No activity recorded for this project.</p>
+        {% endif %}
+    </div>
+
+    <!-- ==================== TAB CONTENT: REPORTS ==================== -->
+    {% elif active_tab == 'reports' %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+        <h3 class="text-lg font-bold text-gray-900 border-b border-gray-50 pb-3">Project Summary Report</h3>
+        <div class="bg-blue-50 rounded-xl p-4 border border-blue-100 text-sm text-blue-700 flex gap-3 items-start">
+            <i class="fas fa-info-circle text-base mt-0.5"></i>
+            <div>
+                <h4 class="font-bold">Project Reports Dashboard</h4>
+                <p class="mt-1">Analyze and review work report inputs, task completion ratios, and timeline metrics. Choose an option below to compile summaries.</p>
             </div>
-            {% else %}
-            <p class="text-gray-500 italic">No work items associated with this project.</p>
-            {% endif %}
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
+            <div class="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition">
+                <h4 class="text-base font-bold text-gray-900 mb-2"><i class="fas fa-file-contract text-blue-600 mr-2"></i>Compile Project Report</h4>
+                <p class="text-xs text-gray-400 mb-4">Generates a complete overview of task progress, team member assignments, and QA verification logs.</p>
+                <a href="{{ url_for('projects.project_reports') }}?project_id={{ project[0] }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition">
+                    View Report
+                </a>
+            </div>
+            <div class="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition">
+                <h4 class="text-base font-bold text-gray-900 mb-2"><i class="fas fa-calendar-alt text-blue-600 mr-2"></i>Daily Work Reports Logs</h4>
+                <p class="text-xs text-gray-400 mb-4">View daily submitted logs from the developer team for tasks assigned to this project.</p>
+                <a href="{{ url_for('projects.admin_work_reports') }}?project_id={{ project[0] }}" class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition">
+                    Monitor Logs
+                </a>
+            </div>
         </div>
     </div>
+    {% endif %}
 </div>
-
-<script>
-    // Safely render the project description HTML
-    document.getElementById('projectDescription').innerHTML = {{ project[3]|tojson|safe }};
-</script>
 {% endblock %}

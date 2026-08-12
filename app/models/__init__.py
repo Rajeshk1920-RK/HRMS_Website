@@ -14,9 +14,11 @@ from app.models.expenses import ExpenseMixin
 from app.models.wiki import WikiMixin
 from app.models.admin import AdminMixin
 from app.models.work_items import WorkItemMixin
+from app.models.work_reports import WorkReportMixin
+from app.models.qa_tests import QATestMixin
 
 
 class Database(AuthMixin, EmployeeMixin, ProjectMixin, TaskMixin,
                LeaveMixin, ExpenseMixin, WikiMixin, AdminMixin,
-               WorkItemMixin, DatabaseBase):
+               WorkItemMixin, WorkReportMixin, QATestMixin, DatabaseBase):
     pass

@@ -105,7 +105,7 @@ def delete_wiki(wiki_id):
 # ------ Employee: list all Wikis ----------------
 @wiki_bp.route('/employee/wiki')
 def employee_wiki_list():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
     wikis = db.get_wiki_pages()
     return render_template('wiki/wiki_list.html', wikis=wikis)
@@ -113,7 +113,7 @@ def employee_wiki_list():
 # ------ Employee: view a single Wiki ------------
 @wiki_bp.route('/employee/wiki/<int:wiki_id>')
 def wiki_detail(wiki_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
     page = db.get_wiki_page(wiki_id)
     if not page:

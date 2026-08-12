@@ -168,7 +168,7 @@ def asset_history():
 
 @assets_bp.route('/employee/assets')
 def employee_assets():
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     conn = get_db_connection()
@@ -210,7 +210,7 @@ def employee_assets():
 
 @assets_bp.route('/employee/report_issue/<int:asset_id>', methods=['POST'])
 def report_asset_issue(asset_id):
-    if 'user_id' not in session or session['emp_type'] != 'emp':
+    if 'user_id' not in session or session['emp_type'] not in ['emp', 'tester']:
         return redirect(url_for('auth.login'))
 
     issue_text = request.form['issue_text'].strip()
