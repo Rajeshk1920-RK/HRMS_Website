@@ -1,29 +1,32 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}View Work Items - HRMS{% endblock %}
+{% block title %}Work Items - HRMS{% endblock %}
 
-{% block main_class %}p-3 w-full{% endblock %}
+{% block main_class %}bg-[#f6f8fa] min-h-screen p-6 w-full max-w-full{% endblock %}
 
 {% block content %}
-<div class="w-full px-1">
+<div class="max-w-6xl mx-auto px-4">
     <!-- Header -->
-    <div class="mb-8 flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">Work Items</h1>
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-3xl font-normal text-gray-900 leading-tight">
+            Work Items
+            <span class="text-xs text-gray-500 font-semibold uppercase bg-gray-200/60 px-2 py-0.5 rounded ml-2">{{ work_items|length }} items</span>
+        </h1>
         {% if session.emp_type == 'admin' %}
         <a href="{{ url_for('work_items.add_work_item') }}"
-           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200">
-            <i class="fas fa-plus mr-2"></i>Add Work Item
+           class="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-xs font-bold text-white bg-[#2da44e] hover:bg-[#2c974b] transition duration-200">
+            <i class="fas fa-plus mr-1.5"></i>New Work Item
         </a>
         {% endif %}
     </div>
 
-    <!-- Filters block -->
-    <div class="bg-white shadow rounded-lg mb-8 p-6">
+    <!-- Filters Block (GitHub Issue Filters style) -->
+    <div class="bg-white border border-[#d0d7de] rounded-md shadow-sm mb-6 p-4">
         <form method="GET" action="{{ url_for('work_items.view_work_items') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
-                <label for="project_id" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Project</label>
+                <label for="project_id" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Project</label>
                 <select name="project_id" id="project_id"
-                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                        class="block w-full border border-[#d0d7de] rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-xs bg-[#f6f8fa] focus:bg-white transition">
                     <option value="">All Projects</option>
                     {% for p in projects %}
                     <option value="{{ p[0] }}" {% if selected_project == p[0] %}selected{% endif %}>{{ p[1] }}</option>
@@ -33,9 +36,9 @@
 
             {% if session.emp_type != 'emp' %}
             <div>
-                <label for="employee_id" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Assignee</label>
+                <label for="employee_id" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Assignee</label>
                 <select name="employee_id" id="employee_id"
-                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                        class="block w-full border border-[#d0d7de] rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-xs bg-[#f6f8fa] focus:bg-white transition">
                     <option value="">All Assignees</option>
                     {% for e in employees %}
                     <option value="{{ e[0] }}" {% if selected_employee == e[0] %}selected{% endif %}>{{ e[1] }} {{ e[2] }}</option>
@@ -45,9 +48,9 @@
             {% endif %}
 
             <div>
-                <label for="status" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+                <label for="status" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Status</label>
                 <select name="status" id="status"
-                        class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                        class="block w-full border border-[#d0d7de] rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-xs bg-[#f6f8fa] focus:bg-white transition">
                     <option value="">All Statuses</option>
                     {% for s in ['New', 'Active', 'Testing', 'UAT', 'Resolved'] %}
                     <option value="{{ s }}" {% if selected_status == s %}selected{% endif %}>{{ s }}</option>
@@ -56,76 +59,101 @@
             </div>
 
             <div>
-                <label for="search" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Search</label>
+                <label for="search" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Search</label>
                 <div class="relative rounded-md shadow-sm">
                     <input type="text" name="search" id="search" value="{{ search_query or '' }}"
-                           placeholder="Search Title or ID..."
-                           class="block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-3 pr-10 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
-                    <button type="submit" class="absolute inset-y-0 right-0 px-3 flex items-center bg-gray-50 border-l border-gray-300 rounded-r-md text-gray-500 hover:bg-gray-100">
-                        <i class="fas fa-search"></i>
+                           placeholder="Search title or ID..."
+                           class="block w-full border border-[#d0d7de] rounded-md shadow-sm py-1.5 pl-3 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-xs bg-[#f6f8fa] focus:bg-white transition">
+                    <button type="submit" class="absolute inset-y-0 right-0 px-3 flex items-center bg-[#f6f8fa] border-l border-[#d0d7de] rounded-r-md text-gray-500 hover:bg-gray-100">
+                        <i class="fas fa-search text-xs"></i>
                     </button>
                 </div>
             </div>
             
-            <div class="md:col-span-4 flex justify-end">
-                <a href="{{ url_for('work_items.view_work_items') }}" class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
-                    <i class="fas fa-undo"></i> Reset Filters
+            <div class="md:col-span-4 flex justify-between items-center text-xs mt-2 pt-2 border-t border-gray-100">
+                <span class="text-gray-500">Filter your views easily</span>
+                <a href="{{ url_for('work_items.view_work_items') }}" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-semibold">
+                    <i class="fas fa-undo text-[10px]"></i> Clear Filters
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- Data List -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
+    <!-- Data List (GitHub Issues List style) -->
+    <div class="bg-white border border-[#d0d7de] rounded-md shadow-sm overflow-hidden">
         {% if work_items %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimated Hours</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for item in work_items %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ item[1] }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900 font-medium max-w-xs truncate">{{ item[4] }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[11] }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[12] }} {{ item[13] }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                {% if item[10] == 'New' %}bg-yellow-100 text-yellow-800
-                                {% elif item[10] == 'Active' %}bg-blue-100 text-blue-800
-                                {% elif item[10] == 'Testing' %}bg-purple-100 text-purple-800
-                                {% elif item[10] == 'UAT' %}bg-orange-100 text-orange-800
-                                {% else %}bg-green-100 text-green-800{% endif %}">
-                                {{ item[10] }}
+        <div class="bg-[#f6f8fa] border-b border-[#d0d7de] px-4 py-3 flex items-center gap-3 text-xs font-semibold text-gray-600">
+            <div class="flex items-center gap-1">
+                <i class="fas fa-dot-circle text-[#2da44e]"></i>
+                <span>Open / Active Items</span>
+            </div>
+        </div>
+
+        <div class="divide-y divide-[#d0d7de]">
+            {% for item in work_items %}
+            <div class="p-4 flex justify-between items-start hover:bg-[#f6f8fa]/50 transition group">
+                <div class="flex gap-3">
+                    <!-- Icon -->
+                    <span class="mt-0.5">
+                        {% if item[10] == 'New' %}
+                        <i class="fas fa-dot-circle text-[#57606a] text-base"></i>
+                        {% elif item[10] == 'Active' %}
+                        <i class="fas fa-dot-circle text-[#2da44e] text-base"></i>
+                        {% elif item[10] == 'Testing' %}
+                        <i class="fas fa-vial text-[#bf3989] text-base"></i>
+                        {% elif item[10] == 'UAT' %}
+                        <i class="fas fa-clipboard-check text-[#8250df] text-base"></i>
+                        {% else %}
+                        <i class="fas fa-check-circle text-[#57606a] text-base"></i>
+                        {% endif %}
+                    </span>
+
+                    <!-- Title & Details -->
+                    <div class="space-y-1">
+                        <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
+                           class="text-sm font-bold text-gray-900 hover:text-blue-600 leading-snug">
+                            {{ item[4] }}
+                        </a>
+                        <div class="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span class="font-semibold text-gray-700">#{{ item[1] }}</span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-project-diagram text-gray-300"></i> {{ item[11] }}
                             </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[7] }} hrs</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[9].strftime('%d-%b-%Y') }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
-                               class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition duration-200">
-                                <i class="fas fa-eye mr-1"></i>View
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            <span>•</span>
+                            <span class="flex items-center gap-1">
+                                <i class="fas fa-user-tag text-gray-300"></i> Assigned to: <strong class="text-gray-600">{{ item[12] }} {{ item[13] }}</strong>
+                            </span>
+                            <span>•</span>
+                            <span>Est: <strong>{{ item[7] }} hrs</strong></span>
+                            <span>•</span>
+                            <span>Opened: {{ item[9].strftime('%d-%b-%Y') }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Badge and View Link -->
+                <div class="flex items-center gap-4">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                        {% if item[10] == 'New' %}bg-[#cfd3d7] text-gray-900
+                        {% elif item[10] == 'Active' %}bg-[#dafbe1] text-[#1a7f37]
+                        {% elif item[10] == 'Testing' %}bg-[#fbe5f2] text-[#bf3989]
+                        {% elif item[10] == 'UAT' %}bg-[#fbebfb] text-[#8250df]
+                        {% else %}bg-[#f6f8fa] text-[#57606a] border border-[#d0d7de]{% endif %}">
+                        {{ item[10] }}
+                    </span>
+                    <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
+                       class="text-gray-400 hover:text-gray-800 p-1 rounded hover:bg-gray-100 transition opacity-0 group-hover:opacity-100">
+                        <i class="fas fa-chevron-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-12">
+        <div class="text-center py-16">
             <i class="fas fa-tasks text-4xl text-gray-300 mb-3"></i>
-            <p class="text-gray-500 italic">No work items found matching the selected filters.</p>
+            <p class="text-gray-500 italic text-sm">No work items found matching the selected filters.</p>
         </div>
         {% endif %}
     </div>
