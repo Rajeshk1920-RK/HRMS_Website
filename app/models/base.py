@@ -87,6 +87,20 @@ class DatabaseBase:
             )
         ''')
 
+        # Create tbl_project_files
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_project_files (
+                file_id SERIAL PRIMARY KEY,
+                project_id INTEGER NOT NULL,
+                file_name TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                file_type TEXT,
+                file_size INTEGER DEFAULT 0,
+                inserted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (project_id) REFERENCES tbl_project (project_id) ON DELETE CASCADE
+            )
+        ''')
+
         # Create tbl_task
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tbl_task (

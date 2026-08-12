@@ -25,7 +25,7 @@
             <!-- Project Description -->
             <div class="mb-6">
                 <h4 class="text-sm font-medium text-gray-500 mb-2">Project Description</h4>
-                <div class="prose prose-sm max-w-none text-gray-900" id="projectDescription"></div>
+                <div class="prose prose-sm max-w-none text-gray-900 ql-editor" id="projectDescription"></div>
             </div>
 
             <!-- Other Project Information -->
@@ -75,35 +75,107 @@
         </div>
     </div>
 
+    {% if metrics %}
     <!-- Project Metrics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-blue-500">
             <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Work Items</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_tasks }}</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_tasks if metrics.total_tasks is defined else (metrics.get('total_tasks', 0) if metrics is mapping else 0) }}</h3>
             </div>
             <i class="fas fa-tasks text-3xl text-gray-300"></i>
         </div>
         <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-purple-500">
             <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Estimated Hours</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_hours }} hrs</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.total_hours if metrics.total_hours is defined else (metrics.get('total_hours', 0) if metrics is mapping else 0) }} hrs</h3>
             </div>
             <i class="fas fa-clock text-3xl text-gray-300"></i>
         </div>
         <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-green-500">
             <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1st QA Passed</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.first_qa_passed }}</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.first_qa_passed if metrics.first_qa_passed is defined else (metrics.get('first_qa_passed', 0) if metrics is mapping else 0) }}</h3>
             </div>
             <i class="fas fa-check-double text-3xl text-gray-300"></i>
         </div>
         <div class="bg-white shadow rounded-lg p-5 flex items-center justify-between border-l-4 border-red-500">
             <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">QA Failed Attempts</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.qa_failed }}</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ metrics.qa_failed if metrics.qa_failed is defined else (metrics.get('qa_failed', 0) if metrics is mapping else 0) }}</h3>
             </div>
             <i class="fas fa-exclamation-triangle text-3xl text-gray-300"></i>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Project Attachments Section -->
+    <div class="bg-white shadow rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-folder-open text-indigo-600 mr-2"></i>Project Attachments & Files (BOM, Images, Documents)
+                {% if files %}
+                <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ files|length }}</span>
+                {% endif %}
+            </h3>
+
+            {% if files %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {% for f in files %}
+                <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-gray-50/50 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-3 mb-2">
+                            {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] %}
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                                <i class="fas fa-file-image text-xl"></i>
+                            </div>
+                            {% elif f[4] in ['zip', 'rar', '7z', 'tar', 'gz'] %}
+                            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+                                <i class="fas fa-file-archive text-xl"></i>
+                            </div>
+                            {% elif f[4] == 'pdf' %}
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                                <i class="fas fa-file-pdf text-xl"></i>
+                            </div>
+                            {% elif f[4] in ['txt', 'csv', 'log', 'json', 'md'] %}
+                            <div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 flex-shrink-0">
+                                <i class="fas fa-file-alt text-xl"></i>
+                            </div>
+                            {% else %}
+                            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                                <i class="fas fa-file text-xl"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="truncate">
+                                <h4 class="text-sm font-semibold text-gray-900 truncate" title="{{ f[2] }}">{{ f[2] }}</h4>
+                                <p class="text-xs text-gray-500">Size: {{(f[5] / 1024)|round(1)}} KB</p>
+                            </div>
+                        </div>
+
+                        {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
+                        <div class="mt-2 mb-2 rounded overflow-hidden border border-gray-200 bg-white max-h-36 flex justify-center items-center">
+                            <img src="{{ url_for('static', filename=f[3]) }}" alt="{{ f[2] }}" class="object-cover max-h-36 w-full">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
+                        <a href="{{ url_for('static', filename=f[3]) }}" target="_blank"
+                           class="inline-flex items-center text-indigo-600 hover:text-indigo-900 font-medium bg-indigo-50 px-2 py-1 rounded">
+                            <i class="fas fa-eye mr-1"></i>View / Open
+                        </a>
+                        <a href="{{ url_for('static', filename=f[3]) }}" download="{{ f[2] }}"
+                           class="inline-flex items-center text-green-600 hover:text-green-900 font-medium bg-green-50 px-2 py-1 rounded">
+                            <i class="fas fa-download mr-1"></i>Download
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500 italic">No files or attachments uploaded for this project yet.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -128,13 +200,13 @@
                         {% for task in tasks %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task[1][:50]|safe }}{% if task[1]|length > 50 %}...{% endif %}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task[8] }} {{ task[9] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task[8] if task|length > 8 else '' }} {{ task[9] if task|length > 9 else '' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                     {% if task[4] == 'high' %}bg-red-100 text-red-800
                                     {% elif task[4] == 'medium' %}bg-yellow-100 text-yellow-800
                                     {% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ task[4]|title }}
+                                    {{ task[4]|title if task|length > 4 and task[4] else 'Normal' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -142,12 +214,12 @@
                                     {% if task[5] == 'completed' %}bg-green-100 text-green-800
                                     {% elif task[5] == 'in_progress' %}bg-blue-100 text-blue-800
                                     {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ task[5]|replace('_', ' ')|title }}
+                                    {{ task[5]|replace('_', ' ')|title if task|length > 5 and task[5] else 'Pending' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div>Start: {{ task[6] }}</div>
-                                <div>End: {{ task[7] if task[7] else 'Not set' }}</div>
+                                <div>Start: {{ task[6] if task|length > 6 else 'Not set' }}</div>
+                                <div>End: {{ task[7] if task|length > 7 and task[7] else 'Not set' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <a href="{{ url_for('tasks.show_task_details', task_id=task[0]) }}"
@@ -167,16 +239,10 @@
     </div>
 
     <!-- Associated Work Items Section -->
-    <div class="bg-white shadow rounded-lg">
+    <div class="bg-white shadow rounded-lg mt-8">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium text-gray-900">Work Items / Task Workflow</h3>
-                {% if session.emp_type == 'admin' %}
-                <a href="{{ url_for('work_items.add_work_item', project_id=project[0]) }}"
-                   class="inline-flex items-center px-3 py-1.5 border border-transparent rounded shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
-                    <i class="fas fa-plus mr-1"></i>Add Work Item
-                </a>
-                {% endif %}
             </div>
             {% if work_items %}
             <div class="overflow-x-auto">
@@ -195,21 +261,27 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for item in work_items %}
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ item[1] }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900 font-medium max-w-xs truncate">{{ item[4] }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[12] }} {{ item[13] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ item[1] if item|length > 1 else item[0] }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900 font-medium max-w-xs truncate">{{ item[4] if item|length > 4 else '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[12] if item|length > 12 else '' }} {{ item[13] if item|length > 13 else '' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if item[10] == 'New' %}bg-yellow-100 text-yellow-800
-                                    {% elif item[10] == 'Active' %}bg-blue-100 text-blue-800
-                                    {% elif item[10] == 'Testing' %}bg-purple-100 text-purple-800
-                                    {% elif item[10] == 'UAT' %}bg-orange-100 text-orange-800
+                                    {% if item|length > 10 and item[10] == 'New' %}bg-yellow-100 text-yellow-800
+                                    {% elif item|length > 10 and item[10] == 'Active' %}bg-blue-100 text-blue-800
+                                    {% elif item|length > 10 and item[10] == 'Testing' %}bg-purple-100 text-purple-800
+                                    {% elif item|length > 10 and item[10] == 'UAT' %}bg-orange-100 text-orange-800
                                     {% else %}bg-green-100 text-green-800{% endif %}">
-                                    {{ item[10] }}
+                                    {{ item[10] if item|length > 10 else 'Active' }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[7] }} hrs</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[9].strftime('%d-%b-%Y') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item[7] if item|length > 7 else 0 }} hrs</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if item|length > 9 and item[9] and item[9].strftime is defined %}
+                                    {{ item[9].strftime('%d-%b-%Y') }}
+                                {% else %}
+                                    {{ item[9] if item|length > 9 and item[9] else 'Not set' }}
+                                {% endif %}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <a href="{{ url_for('work_items.work_item_details', work_item_id=item[0]) }}"
                                    class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition duration-200">
@@ -230,6 +302,6 @@
 
 <script>
     // Safely render the project description HTML
-    document.getElementById('projectDescription').innerHTML = `{{ project[3]|safe }}`;
+    document.getElementById('projectDescription').innerHTML = {{ project[3]|tojson|safe }};
 </script>
 {% endblock %}

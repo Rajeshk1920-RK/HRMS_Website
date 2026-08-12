@@ -57,12 +57,15 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end gap-3">
-                                <button onclick="openEditModal({{ status[0] }}, '{{ status[1]|escape }}', '{{ (status[2] or '')|escape }}', '{{ status[3] or '#6b7280' }}')"
+                                <button data-id="{{ status[0] }}" data-name="{{ status[1]|escape }}"
+                                        data-desc="{{ (status[2] or '')|escape }}" data-color="{{ status[3] or '#6b7280' }}"
+                                        onclick="openEditModal(this.dataset.id, this.dataset.name, this.dataset.desc, this.dataset.color)"
                                         class="text-teal-600 hover:text-teal-900 transition-colors" title="Edit">
                                     <i class="fas fa-pencil-alt text-base"></i>
                                 </button>
-                                <a href="javascript:void(0);" 
-                                   onclick="confirmDelete('task status', {{ status[0] }}, '{{ url_for('tasks.delete_task_status', status_id=status[0]) }}')"
+                                <a href="javascript:void(0);" data-id="{{ status[0] }}"
+                                   data-url="{{ url_for('tasks.delete_task_status', status_id=status[0]) }}"
+                                   onclick="confirmDelete('task status', this.dataset.id, this.dataset.url)"
                                    class="text-red-600 hover:text-red-900 transition-colors" title="Delete">
                                     <i class="fas fa-trash-alt text-base"></i>
                                 </a>

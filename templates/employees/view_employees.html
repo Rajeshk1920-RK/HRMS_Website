@@ -121,8 +121,9 @@
                                             class="block px-4 py-2 text-sm text-purple-700 hover:bg-purple-100">
                                             <i class="fas fa-calendar-alt mr-1 text-purple-500"></i> Timesheet
                                         </a>
-                                        <!-- <button
-                                            onclick="confirmDelete('employee',{{employee[0] }}, '{{ url_for('employees.delete_employee', emp_id=employee[0]) }}')"
+                                        <!-- <button data-id="{{ employee[0] }}"
+                                            data-url="{{ url_for('employees.delete_employee', emp_id=employee[0]) }}"
+                                            onclick="confirmDelete('employee', this.dataset.id, this.dataset.url)"
                                             class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-100">
                                             <i class="fas fa-trash mr-1"></i> Delete
                                         </button> -->
