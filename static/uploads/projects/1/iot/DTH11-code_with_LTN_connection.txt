@@ -1,0 +1,154 @@
+#include <lmic.h>
+#include <hal/hal.h>
+#include <SPI.h>
+#include <DHT.h>
+
+#define DHTPIN 21
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// JoinEUI (LSB)
+static const u1_t PROGMEM APPEUI[8] =
+{
+  0x08,0x07,0x06,0x05,
+  0x04,0x03,0x02,0x01
+};
+
+void os_getArtEui(u1_t* buf)
+{
+  memcpy_P(buf, APPEUI, 8);
+}
+
+// DevEUI (LSB)
+static const u1_t PROGMEM DEVEUI[8] =
+{
+  0xBA,0x9A,0x06,0xD0,
+  0x7E,0xD5,0xB3,0x70
+};
+
+void os_getDevEui(u1_t* buf)
+{
+  memcpy_P(buf, DEVEUI, 8);
+}
+
+// AppKey (MSB)
+static const u1_t PROGMEM APPKEY[16] =
+{
+  0xA1,0xB2,0xC3,0xD4,
+  0xE5,0xF6,0x11,0x22,
+  0x33,0x44,0x55,0x66,
+  0x77,0x88,0x99,0xAA
+};
+
+void os_getDevKey(u1_t* buf)
+{
+  memcpy_P(buf, APPKEY, 16);
+}
+
+const lmic_pinmap lmic_pins =
+{
+  .nss = 5,
+  .rxtx = LMIC_UNUSED_PIN,
+  .rst = 25,
+  .dio = {2,33,LMIC_UNUSED_PIN}
+};
+
+static osjob_t sendjob;
+const unsigned TX_INTERVAL = 60;
+
+void do_send(osjob_t *j)
+{
+  if (LMIC.opmode & OP_TXRXPEND)
+  {
+    Serial.println("Busy");
+    return;
+  }
+
+  float temp = dht.readTemperature();
+  float hum  = dht.readHumidity();
+
+  if (isnan(temp) || isnan(hum))
+  {
+    Serial.println("DHT11 Error");
+    return;
+  }
+
+  int16_t t = temp * 100;
+  uint16_t h = hum * 100;
+
+  uint8_t payload[4];
+
+  payload[0] = highByte(t);
+  payload[1] = lowByte(t);
+  payload[2] = highByte(h);
+  payload[3] = lowByte(h);
+
+  LMIC_setTxData2(1, payload, 4, 0);
+
+  Serial.println("Packet queued");
+}
+
+void onEvent(ev_t ev)
+{
+  switch(ev)
+  {
+    case EV_JOINING:
+      Serial.println("Joining...");
+      break;
+
+    case EV_JOINED:
+      Serial.println("JOIN SUCCESS");
+      LMIC_setLinkCheckMode(0);
+      do_send(&sendjob);
+      break;
+
+    case EV_JOIN_FAILED:
+      Serial.println("JOIN FAILED");
+      break;
+
+    case EV_TXCOMPLETE:
+      Serial.println("TX COMPLETE");
+      os_setTimedCallback(
+        &sendjob,
+        os_getTime()+sec2osticks(TX_INTERVAL),
+        do_send);
+      break;
+
+    default:
+      break;
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  dht.begin();
+
+  SPI.begin(18,19,23,5);
+
+  os_init();
+  LMIC_reset();
+
+  LMIC_setupChannel(0,865062500,
+                    DR_RANGE_MAP(DR_SF12,DR_SF7),
+                    BAND_CENTI);
+
+  LMIC_setupChannel(1,865402500,
+                    DR_RANGE_MAP(DR_SF12,DR_SF7),
+                    BAND_CENTI);
+
+  LMIC_setupChannel(2,865985000,
+                    DR_RANGE_MAP(DR_SF12,DR_SF7),
+                    BAND_CENTI);
+
+  LMIC_setDrTxpow(DR_SF7,14);
+
+  Serial.println("Starting...");
+  LMIC_startJoining();
+}
+
+void loop()
+{
+  os_runloop_once();
+}

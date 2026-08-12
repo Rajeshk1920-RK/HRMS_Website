@@ -25,7 +25,7 @@
             <!-- Project Description -->
             <div class="mb-6">
                 <h4 class="text-sm font-medium text-gray-500 mb-2">Project Description</h4>
-                <div class="prose prose-sm max-w-none text-gray-900" id="projectDescription"></div>
+                <div class="prose prose-sm max-w-none text-gray-900 ql-editor" id="projectDescription"></div>
             </div>
 
             <!-- Other Project Information -->
@@ -72,6 +72,76 @@
                     Edit Project
                 </a>
             </div>
+        </div>
+    </div>
+
+    <!-- Project Attachments Section -->
+    <div class="bg-white shadow rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-folder-open text-indigo-600 mr-2"></i>Project Attachments & Files (BOM, Images, Documents)
+                {% if files %}
+                <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ files|length }}</span>
+                {% endif %}
+            </h3>
+
+            {% if files %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {% for f in files %}
+                <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow bg-gray-50/50 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-3 mb-2">
+                            {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] %}
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                                <i class="fas fa-file-image text-xl"></i>
+                            </div>
+                            {% elif f[4] in ['zip', 'rar', '7z', 'tar', 'gz'] %}
+                            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+                                <i class="fas fa-file-archive text-xl"></i>
+                            </div>
+                            {% elif f[4] == 'pdf' %}
+                            <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                                <i class="fas fa-file-pdf text-xl"></i>
+                            </div>
+                            {% elif f[4] in ['txt', 'csv', 'log', 'json', 'md'] %}
+                            <div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-700 flex-shrink-0">
+                                <i class="fas fa-file-alt text-xl"></i>
+                            </div>
+                            {% else %}
+                            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                                <i class="fas fa-file text-xl"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="truncate">
+                                <h4 class="text-sm font-semibold text-gray-900 truncate" title="{{ f[2] }}">{{ f[2] }}</h4>
+                                <p class="text-xs text-gray-500">Size: {{(f[5] / 1024)|round(1)}} KB</p>
+                            </div>
+                        </div>
+
+                        {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
+                        <div class="mt-2 mb-2 rounded overflow-hidden border border-gray-200 bg-white max-h-36 flex justify-center items-center">
+                            <img src="{{ url_for('static', filename=f[3]) }}" alt="{{ f[2] }}" class="object-cover max-h-36 w-full">
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between border-t border-gray-200 pt-2 text-xs">
+                        <a href="{{ url_for('static', filename=f[3]) }}" target="_blank"
+                           class="inline-flex items-center text-indigo-600 hover:text-indigo-900 font-medium bg-indigo-50 px-2 py-1 rounded">
+                            <i class="fas fa-eye mr-1"></i>View / Open
+                        </a>
+                        <a href="{{ url_for('static', filename=f[3]) }}" download="{{ f[2] }}"
+                           class="inline-flex items-center text-green-600 hover:text-green-900 font-medium bg-green-50 px-2 py-1 rounded">
+                            <i class="fas fa-download mr-1"></i>Download
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500 italic">No files or attachments uploaded for this project yet.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -137,6 +207,6 @@
 
 <script>
     // Safely render the project description HTML
-    document.getElementById('projectDescription').innerHTML = `{{ project[3]|safe }}`;
+    document.getElementById('projectDescription').innerHTML = {{ project[3]|tojson|safe }};
 </script>
 {% endblock %}

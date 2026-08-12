@@ -12,7 +12,7 @@
             <h1 class="text-3xl font-bold text-gray-900 text-center pt-4">Edit Project</h1>
         </div>
         <div class="px-4 py-5 sm:p-6">
-            <form method="POST" class="space-y-6">
+            <form method="POST" enctype="multipart/form-data" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
                         <label for="project_name" class="block text-sm font-medium text-gray-700">Project Name</label>
@@ -43,11 +43,141 @@
                         </select>
                     </div>
 
+                    <!-- Project Description -->
                     <div class="md:col-span-2">
-                        <label for="project_desc" class="block text-sm font-medium text-gray-700">Project Description</label>
-                        <textarea name="project_desc" id="project_desc" rows="4"
-                                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                                  placeholder="Enter project description">{{ project[3] }}</textarea>
+                        <label for="project_desc" class="block text-sm font-medium text-gray-700 mb-2">Project Description</label>
+
+                        <!-- Quill toolbar -->
+                    <div id="toolbar" class="rounded-t-md border border-gray-300 bg-gray-50 flex flex-wrap items-center gap-1 p-1">
+                        <span class="ql-formats">
+                            <select class="ql-font" title="Font Family">
+                                <option selected>Sans Serif</option>
+                                <option value="serif">Serif</option>
+                                <option value="monospace">Monospace</option>
+                                <option value="roboto">Roboto</option>
+                                <option value="poppins">Poppins</option>
+                                <option value="inter">Inter</option>
+                                <option value="georgia">Georgia</option>
+                                <option value="courier">Courier</option>
+                                <option value="comic">Comic Sans</option>
+                            </select>
+                        </span>
+                        <span class="ql-formats">
+                            <select class="ql-header">
+                                <option value="1">Heading 1</option>
+                                <option value="2">Heading 2</option>
+                                <option value="3">Heading 3</option>
+                                <option selected>Normal</option>
+                            </select>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-bold" type="button" title="Bold"></button>
+                            <button class="ql-italic" type="button" title="Italic"></button>
+                            <button class="ql-underline" type="button" title="Underline"></button>
+                            <button class="ql-strike" type="button" title="Strikethrough"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <select class="ql-color" title="Text Color"></select>
+                            <select class="ql-background" title="Background Color"></select>
+                        </span>
+                        <span class="ql-formats">
+                            <select class="ql-align" title="Text Alignment"></select>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered" type="button" title="Numbered List"></button>
+                            <button class="ql-list" value="bullet" type="button" title="Bullet List"></button>
+                            <button class="ql-indent" value="-1" type="button" title="Decrease Indent"></button>
+                            <button class="ql-indent" value="+1" type="button" title="Increase Indent"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-blockquote" type="button" title="Blockquote"></button>
+                            <button class="ql-code-block" type="button" title="Code Block"></button>
+                            <button class="ql-script" value="sub" type="button" title="Subscript"></button>
+                            <button class="ql-script" value="super" type="button" title="Superscript"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link" type="button" title="Insert Link"></button>
+                            <button class="ql-image" type="button" title="Insert Image"></button>
+                            <button class="ql-clean" type="button" title="Clear Formatting"></button>
+                        </span>
+                    </div>
+
+                        <!-- hidden textarea submitted to server -->
+                        <textarea name="project_desc" id="project_desc" style="display:none">{{ project[3] | safe }}</textarea>
+
+                        <!-- Quill editor -->
+                        <div id="editor"
+                             class="block w-full border border-t-0 border-gray-300 rounded-b-md shadow-sm focus:outline-none text-base bg-white"
+                             style="height:200px;"></div>
+                    </div>
+
+                    <!-- Project Attachments / Files / Folders -->
+                    <div class="md:col-span-2 space-y-3">
+                        <label for="project_files" class="block text-sm font-medium text-gray-700">
+                            <i class="fas fa-paperclip text-indigo-600 mr-1"></i>Attach Project Files & Folders (Unlimited Uploads: BOM, Images, Text, ZIP, Documents) to project description
+                        </label>
+
+                        {% if files %}
+                        <div class="bg-gray-50 border border-gray-200 rounded-md p-3">
+                            <p class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Existing Attachments ({{ files|length }}):</p>
+                            <ul class="divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
+                                {% for f in files %}
+                                <li class="p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center space-x-3 truncate">
+                                        {% if f[4] in ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] %}
+                                        <i class="fas fa-file-image text-blue-500 text-lg"></i>
+                                        {% elif f[4] in ['zip', 'rar', '7z', 'tar', 'gz'] %}
+                                        <i class="fas fa-file-archive text-amber-500 text-lg"></i>
+                                        {% elif f[4] == 'pdf' %}
+                                        <i class="fas fa-file-pdf text-red-500 text-lg"></i>
+                                        {% elif f[4] in ['txt', 'csv', 'log', 'json', 'md'] %}
+                                        <i class="fas fa-file-alt text-gray-600 text-lg"></i>
+                                        {% else %}
+                                        <i class="fas fa-file text-indigo-500 text-lg"></i>
+                                        {% endif %}
+
+                                        <div class="truncate">
+                                            <a href="{{ url_for('static', filename=f[3]) }}" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline truncate block">
+                                                {{ f[2] }}
+                                            </a>
+                                            <span class="text-xs text-gray-400">({{(f[5] / 1024)|round(1)}} KB)</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <a href="{{ url_for('static', filename=f[3]) }}" target="_blank" title="View / Open File" class="p-1 text-gray-500 hover:text-indigo-600 rounded">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        <a href="{{ url_for('projects.delete_project_file', file_id=f[0]) }}" onclick="return confirm('Are you sure you want to delete this attached file?')" title="Delete File" class="p-1 text-red-500 hover:text-red-700 rounded">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </a>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-indigo-400 transition-colors bg-gray-50/50">
+                            <div class="space-y-2 text-center w-full">
+                                <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-1"></i>
+                                <div class="flex flex-wrap text-sm text-gray-600 justify-center gap-3">
+                                    <label for="project_files" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 px-3.5 py-2 border border-gray-300 shadow-sm flex items-center space-x-1.5 hover:bg-indigo-50 transition-colors">
+                                        <i class="fas fa-file-medical text-indigo-500"></i>
+                                        <span>Browse Multiple Files</span>
+                                        <input id="project_files" name="project_files" type="file" class="sr-only" multiple onchange="updateFilesPreview()">
+                                    </label>
+                                    <label for="project_folder" class="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 px-3.5 py-2 border border-gray-300 shadow-sm flex items-center space-x-1.5 hover:bg-emerald-50 transition-colors">
+                                        <i class="fas fa-folder-plus text-emerald-500"></i>
+                                        <span>Browse Entire Folder</span>
+                                        <input id="project_folder" name="project_folder" type="file" class="sr-only" webkitdirectory directory multiple onchange="updateFilesPreview()">
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-500">You can select multiple files AND an entire folder at the same time.</p>
+                                
+                                <!-- Files Preview List -->
+                                <div id="selectedFilesList" class="mt-3 text-left space-y-1.5 text-xs text-gray-700 max-h-48 overflow-y-auto"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
@@ -80,6 +210,79 @@
 </div>
 
 <script>
+    // Register custom font families in Quill
+    const Font = Quill.import('formats/font');
+    Font.whitelist = ['sans-serif', 'serif', 'monospace', 'roboto', 'poppins', 'inter', 'georgia', 'courier', 'comic'];
+    Quill.register(Font, true);
+
+    // Initialize Quill Editor
+    const quill = new Quill('#editor', {
+        theme: 'snow',
+        modules: { toolbar: '#toolbar' }
+    });
+
+    // Populate existing content into Quill editor
+    const existingDesc = document.getElementById('project_desc').value;
+    if (existingDesc) {
+        quill.root.innerHTML = existingDesc;
+    }
+
+    // Copy Quill content to hidden textarea on submit
+    const editForm = document.querySelector('form');
+    if (editForm) {
+        editForm.addEventListener('submit', function () {
+            document.getElementById('project_desc').value = quill.root.innerHTML;
+        });
+    }
+
+    function updateFilesPreview() {
+        const listDiv = document.getElementById('selectedFilesList');
+        listDiv.innerHTML = '';
+
+        const fileInput = document.getElementById('project_files');
+        const folderInput = document.getElementById('project_folder');
+
+        const filesList = [];
+        if (fileInput && fileInput.files) {
+            Array.from(fileInput.files).forEach(f => filesList.push(f));
+        }
+        if (folderInput && folderInput.files) {
+            Array.from(folderInput.files).forEach(f => filesList.push(f));
+        }
+
+        if (filesList.length > 0) {
+            const heading = document.createElement('div');
+            heading.className = 'font-semibold text-gray-800 mb-2 border-b pb-1 flex justify-between items-center';
+            heading.innerHTML = `<span>Selected Attachments (${filesList.length} item${filesList.length > 1 ? 's' : ''}):</span> <span class="text-xs font-medium text-emerald-600"><i class="fas fa-check-circle mr-1"></i>Ready to save</span>`;
+            listDiv.appendChild(heading);
+
+            filesList.forEach((file) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between bg-white p-2 rounded border border-gray-200 shadow-sm my-1 hover:bg-gray-50';
+
+                let iconClass = 'far fa-file text-gray-500';
+                if (file.type.startsWith('image/')) iconClass = 'far fa-file-image text-blue-500';
+                else if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z')) iconClass = 'far fa-file-archive text-amber-500';
+                else if (file.name.endsWith('.pdf')) iconClass = 'far fa-file-pdf text-red-500';
+                else if (file.name.endsWith('.txt')) iconClass = 'far fa-file-alt text-gray-600';
+                else if (file.webkitRelativePath) iconClass = 'far fa-folder-open text-emerald-500';
+
+                const displayPath = file.webkitRelativePath || file.name;
+                const sizeStr = (file.size / 1024).toFixed(1) + ' KB';
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2 truncate pr-2">
+                        <i class="${iconClass} text-sm"></i>
+                        <span class="font-medium truncate max-w-xs text-gray-800" title="${displayPath}">${displayPath}</span>
+                        <span class="text-gray-400">(${sizeStr})</span>
+                    </div>
+                    <span class="text-xs text-green-600 font-medium flex items-center"><i class="fas fa-check text-xs mr-1"></i>Selected</span>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+    }
+
     // Set minimum date to today for start date
     document.getElementById('start_date').min = new Date().toISOString().split('T')[0];
     

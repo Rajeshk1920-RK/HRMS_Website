@@ -10,9 +10,62 @@ class ProjectMixin:
             INSERT INTO tbl_project
             (project_name, priority, project_desc, project_status, start_date, end_date)
             VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING project_id
         ''', (data['project_name'], data['priority'], data['project_desc'],
               data['project_status'], data['start_date'], data['end_date']))
 
+        project_id = cursor.fetchone()[0]
+        conn.commit()
+        conn.close()
+        return project_id
+
+    def add_project_file(self, project_id, file_name, file_path, file_type, file_size):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO tbl_project_files
+            (project_id, file_name, file_path, file_type, file_size)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (project_id, file_name, file_path, file_type, file_size))
+
+        conn.commit()
+        conn.close()
+
+    def get_project_files(self, project_id):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT file_id, project_id, file_name, file_path, file_type, file_size, inserted_date
+            FROM tbl_project_files
+            WHERE project_id = %s
+            ORDER BY inserted_date ASC
+        ''', (project_id,))
+
+        files = cursor.fetchall()
+        conn.close()
+        return files
+
+    def get_project_file(self, file_id):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT file_id, project_id, file_name, file_path, file_type, file_size, inserted_date
+            FROM tbl_project_files
+            WHERE file_id = %s
+        ''', (file_id,))
+
+        file_rec = cursor.fetchone()
+        conn.close()
+        return file_rec
+
+    def delete_project_file(self, file_id):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('DELETE FROM tbl_project_files WHERE file_id = %s', (file_id,))
         conn.commit()
         conn.close()
 
