@@ -64,7 +64,9 @@ def view_project(project_id):
 
     tasks = db.get_tasks_by_project(project_id)
     files = db.get_project_files(project_id)
-    return render_template('projects/view_project.html', project=project, tasks=tasks, files=files)
+    work_items = db.get_work_items(project_id=project_id) if hasattr(db, 'get_work_items') else []
+    metrics = db.get_project_dashboard_metrics(project_id) if hasattr(db, 'get_project_dashboard_metrics') else {}
+    return render_template('projects/view_project.html', project=project, tasks=tasks, files=files, work_items=work_items, metrics=metrics)
 
 
 @projects_bp.route('/admin/edit_project/<int:project_id>', methods=['GET', 'POST'])
