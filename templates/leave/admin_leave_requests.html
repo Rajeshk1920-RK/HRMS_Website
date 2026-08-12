@@ -1,8 +1,11 @@
 {% extends "layouts/base.html" %}
-{% block title %}Leave Requests{% endblock %}
+
+{% block title %}Leave Requests - Admin Dashboard{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-2">
+<div class="w-full px-1">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="mb-4">

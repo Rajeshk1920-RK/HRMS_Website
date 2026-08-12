@@ -195,10 +195,13 @@ def employee_assets():
     resolved_issues_by_asset = {}
 
     for i in issues:
-        if i['Status'] == 'Resolved':
-            resolved_issues_by_asset.setdefault(i['AssetId'], []).append(i)
+        asset_id = i.get('AssetId') or i.get('assetid')
+        status = i.get('Status') or i.get('status')
+        if status == 'Resolved':
+            resolved_issues_by_asset.setdefault(asset_id, []).append(i)
         else:
-            open_issues_by_asset.setdefault(i['AssetId'], []).append(i)
+            open_issues_by_asset.setdefault(asset_id, []).append(i)
+
 
     return render_template('assets/employee_assets.html',
                            assets=assets,

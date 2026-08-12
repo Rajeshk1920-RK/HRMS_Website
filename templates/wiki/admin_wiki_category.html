@@ -1,10 +1,14 @@
 {% extends "layouts/base.html" %}
-{% block title %}Wiki Categories{% endblock %}
+
+{% block title %}Wiki Categories - Admin Dashboard{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <style>[x-cloak] { display: none !important; }</style>
 
-<div class="max-w-6xl mx-auto">
+<div class="w-full px-1">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="mb-4">

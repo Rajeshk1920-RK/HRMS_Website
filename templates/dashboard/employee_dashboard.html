@@ -1,201 +1,177 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Employee Dashboard - Project Tracking System{% endblock %}
+{% block title %}My Assets - Project Tracking System{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
 
 {% block content %}
-{% if emg_missing %}
-<div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 p-4 mb-6 rounded-md shadow-sm" role="alert">
-    <p class="font-semibold text-lg mb-1"><i class="fa fa-exclamation-triangle mr-2"></i>Action Required</p>
-    <p class="text-sm">Please update your profile in <strong>My Profile</strong>.</p>
-</div>
-{% endif %}
+<div class="w-full px-1">
+    <div class="bg-white shadow rounded-lg border border-gray-200 p-6 sm:p-8">
+        <h2 class="text-2xl font-bold mb-6">My Allocated Assets</h2>
 
-{% if approved_leaves %}
-<div class="space-y-4 mb-6">
-    {% for leave in approved_leaves %}
-    <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 p-4 rounded-xl shadow-sm flex items-center justify-between" role="alert">
-        <div class="flex items-center gap-3">
-            <div class="p-2.5 bg-emerald-100 rounded-full text-emerald-600">
-                <i class="fa-solid fa-calendar-check text-lg"></i>
-            </div>
-            <div>
-                <p class="font-bold text-sm text-emerald-900">Leave Approved!</p>
-                <p class="text-xs text-emerald-700 mt-0.5">
-                    Your leave request for <strong>{{ leave[1] }}</strong> from <strong>{{ leave[3] }}</strong> to <strong>{{ leave[4] }}</strong> has been approved.
-                </p>
-                {% if leave[7] %}
-                <p class="text-xs text-emerald-600 mt-1 italic">Admin: "{{ leave[7] }}"</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<div class="w-full bg-white px-6 py-8">
-          {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="mb-4">
-      {% for category, message in messages %}
-        <div class="px-4 py-2 rounded text-white
-                    {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-    <h2 class="text-3xl font-bold text-gray-800 mb-1">Welcome, {{ session.first_name.title() }}</h2>
-    <p class="text-gray-500 mb-8 text-sm">Review your current assignments and task history.</p>
-
-    <div class="flex flex-wrap gap-4 mb-8">
-        <a href="{{ url_for('tasks.employee_kanban') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-            <i class="fas fa-columns mr-2"></i> My Kanban Board
-        </a>
-        <a href="{{ url_for('tasks.employee_reports') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-            <i class="fas fa-chart-pie mr-2"></i> My Reports
-        </a>
-    </div>
-
-    <!-- Filter -->
-    <form method="GET" class="mb-8">
-        <div class="flex flex-wrap items-center gap-3">
-            <label for="status_filter" class="font-medium text-gray-700">Filter by Status:</label>
-            <select name="status_filter" id="status_filter"
-                class="border border-gray-300 rounded-md px-4 py-2 text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                onchange="this.form.submit()">
-                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
-                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
-            </select>
-        </div>
-    </form>
-
-    <!-- Today's Tasks -->
-    <div class="bg-white shadow-lg rounded-xl mb-10">
-        <div class="bg-gray-100 px-6 py-4 border-b rounded-t-xl flex items-center">
-            <i class="fa fa-calendar-alt mr-2 text-blue-600"></i>
-            <h3 class="text-xl font-semibold text-gray-800">Today's Tasks</h3>
-        </div>
-        <div class="p-6">
-            {% if tasks %}
-                {% set today_tasks = [] %}
-                {% for task in tasks %}
-                    {% set start_date = task[4]|todate if task[4] and task[4]|string != '' else None %}
-                    {% set end_date = task[5]|todate if task[5] and task[5]|string != '' else None %}
-                    {% if start_date and start_date <= today and (not end_date or end_date >= today) %}
-                        {% set _ = today_tasks.append(task) %}
+        {% if assets %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-2 text-left">Item</th>
+                        <th class="p-2 text-left">Model</th>
+                        <th class="p-2 text-left">Allocated Date</th>
+                        <th class="p-2 text-left">Allocated By</th>
+                        <th class="p-2 text-left">Remarks</th>
+                        <th class="p-2 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets %}
+                    {% if asset is mapping %}
+                    {% set cur_asset_id = asset['AssetId'] if 'AssetId' in asset else (asset['assetid'] if 'assetid' in
+                    asset else (asset['AllocatedId'] if 'AllocatedId' in asset else (asset['allocatedid'] if
+                    'allocatedid' in asset else 0))) %}
+                    {% set item_name = asset['ItemName'] if 'ItemName' in asset else (asset['itemname'] if 'itemname' in
+                    asset else '-') %}
+                    {% set model = asset['Model'] if 'Model' in asset else (asset['model'] if 'model' in asset else '-')
+                    %}
+                    {% set alloc_date = asset['AllocateDate'] if 'AllocateDate' in asset else (asset['allocatedate'] if
+                    'allocatedate' in asset else '-') %}
+                    {% set alloc_by = asset['AllocatedBy'] if 'AllocatedBy' in asset else (asset['allocatedby'] if
+                    'allocatedby' in asset else '-') %}
+                    {% set desc = asset['Description'] if 'Description' in asset else (asset['description'] if
+                    'description' in asset else '-') %}
+                    {% else %}
+                    {% set cur_asset_id = asset.AssetId if asset.AssetId is defined and asset.AssetId is not none else
+                    (asset.assetid if asset.assetid is defined and asset.assetid is not none else (asset[1] if asset[1]
+                    is defined else (asset[0] if asset[0] is defined else 0))) %}
+                    {% set item_name = asset.ItemName if asset.ItemName is defined else (asset.itemname if
+                    asset.itemname is defined else (asset[8] if asset|length > 8 else '-')) %}
+                    {% set model = asset.Model if asset.Model is defined else (asset.model if asset.model is defined
+                    else (asset[9] if asset|length > 9 else '-')) %}
+                    {% set alloc_date = asset.AllocateDate if asset.AllocateDate is defined else (asset.allocatedate if
+                    asset.allocatedate is defined else (asset[3] if asset|length > 3 else '-')) %}
+                    {% set alloc_by = asset.AllocatedBy if asset.AllocatedBy is defined else (asset.allocatedby if
+                    asset.allocatedby is defined else (asset[5] if asset|length > 5 else '-')) %}
+                    {% set desc = asset.Description if asset.Description is defined else (asset.description if
+                    asset.description is defined else (asset[6] if asset|length > 6 else '-')) %}
                     {% endif %}
-                {% endfor %}
-                {% if today_tasks %}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {% for task in today_tasks %}
-                        <div class="border border-gray-200 rounded-xl p-5 hover:shadow-md transition duration-150 flex flex-col justify-between h-full bg-white">
-                            <div>
-                                <!-- A nice badge section -->
-                                <div class="flex justify-between items-center mb-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                        {% if task[2] == 'high' %}bg-rose-100 text-rose-800
-                                        {% elif task[2] == 'medium' %}bg-amber-100 text-amber-800
-                                        {% else %}bg-emerald-100 text-emerald-800{% endif %}">
-                                        <i class="fa fa-circle mr-1.5 text-[8px] animate-pulse"></i>
-                                        {{ task[2].title() }} Priority
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                                        {{ task[3].replace('_', ' ').title() }}
-                                    </span>
-                                </div>
-                                
-                                <!-- Task content -->
-                                <div class="text-sm text-gray-800 mb-4 max-h-48 overflow-y-auto pr-1 border-b border-gray-100 pb-3 whitespace-pre-line" style="scrollbar-width: thin;">
-                                    {{ task[1]|safe }}
-                                </div>
-                            </div>
-                            
-                            <div class="mt-auto">
-                                <div class="text-xs text-gray-500 space-y-1.5 mb-4">
-                                    <p class="flex items-center"><i class="fa fa-folder w-4 mr-2 text-indigo-500"></i><strong>Project:</strong> <span class="text-gray-700 ml-1 truncate">{{ task[6] }}</span></p>
-                                    <p class="flex items-center"><i class="fa fa-calendar w-4 mr-2 text-indigo-500"></i><strong>Dates:</strong> <span class="text-gray-700 ml-1">{{ task[4] if task[4] else 'Not Set' }} - {{ task[5] if task[5] else 'Ongoing' }}</span></p>
-                                </div>
-                                <a href="{{ url_for('tasks.view_task_details', task_id=task[0]) }}"
-                                   class="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-lg transition-colors duration-150">
-                                   <i class="fa fa-eye"></i> View Updates
-                                </a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                    <p class="text-gray-500 text-sm">No tasks assigned for today.</p>
-                {% endif %}
-            {% else %}
-                <p class="text-gray-500 text-sm">No tasks assigned.</p>
-            {% endif %}
-        </div>
-    </div>
 
-    <!-- Previous Tasks -->
-    <div class="bg-white shadow-lg rounded-xl">
-        <div class="bg-gray-100 px-6 py-4 border-b rounded-t-xl flex items-center">
-            <i class="fa fa-archive mr-2 text-blue-600"></i>
-            <h3 class="text-xl font-semibold text-gray-800">Previous Tasks</h3>
-        </div>
-        <div class="p-6">
-            {% if tasks %}
-                {% set previous_tasks = [] %}
-                {% for task in tasks %}
-                    {% set start_date = task[4]|todate if task[4] and task[4]|string != '' else None %}
-                    {% set end_date = task[5]|todate if task[5] and task[5]|string != '' else None %}
-                    {% if start_date and not (start_date <= today and (not end_date or end_date >= today)) %}
-                        {% set _ = previous_tasks.append(task) %}
+                    <tr class="border-t">
+                        <td class="p-2">{{ item_name }}</td>
+                        <td class="p-2">{{ model }}</td>
+                        <td class="p-2">{{ alloc_date }}</td>
+                        <td class="p-2">{{ alloc_by }}</td>
+                        <td class="p-2">{{ desc }}</td>
+                        <td class="p-2">
+                            <button onclick="openModal({ cur_asset_id })"
+                                class="text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700 text-sm">
+                                Report Issue
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Show OPEN issues -->
+                    {% set open_issues = (open_issues_by_asset.get(cur_asset_id) or
+                    open_issues_by_asset.get(cur_asset_id|string) or open_issues_by_asset.get(cur_asset_id|int) or [])
+                    if open_issues_by_asset and open_issues_by_asset.get is defined else
+                    (open_issues_by_asset[cur_asset_id] if open_issues_by_asset and cur_asset_id in open_issues_by_asset
+                    else []) %}
+                    {% if open_issues %}
+                    <tr class="bg-yellow-50 text-sm text-yellow-800">
+                        <td colspan="6" class="p-2 pl-6">
+                            <strong>Open Issues:</strong>
+                            <ul class="list-disc ml-4 mt-1 space-y-1">
+                                {% for issue in open_issues %}
+                                {% set issue_text = issue['IssueText'] if 'IssueText' in issue else (issue['issuetext']
+                                if 'issuetext' in issue else (issue.IssueText if issue.IssueText is defined else
+                                (issue.issuetext if issue.issuetext is defined else '-'))) %}
+                                {% set issue_date = issue['ReportedDate'] if 'ReportedDate' in issue else
+                                (issue['reporteddate'] if 'reporteddate' in issue else (issue.ReportedDate if
+                                issue.ReportedDate is defined else (issue.reporteddate if issue.reporteddate is defined
+                                else '-'))) %}
+                                {% set issue_status = issue['Status'] if 'Status' in issue else (issue['status'] if
+                                'status' in issue else (issue.Status if issue.Status is defined else (issue.status if
+                                issue.status is defined else '-'))) %}
+                                <li>
+                                    "{{ issue_text }}"
+                                    <span class="text-xs text-gray-600">Reported: {{ issue_date }}</span>
+                                    <span class="text-red-600 font-semibold ml-2">[Status: {{ issue_status }}]</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
                     {% endif %}
-                {% endfor %}
-                {% if previous_tasks %}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {% for task in previous_tasks %}
-                        <div class="border border-gray-200 rounded-xl p-5 hover:shadow-md transition duration-150 flex flex-col justify-between h-full bg-white">
-                            <div>
-                                <!-- A nice badge section -->
-                                <div class="flex justify-between items-center mb-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                        {% if task[2] == 'high' %}bg-rose-100 text-rose-800
-                                        {% elif task[2] == 'medium' %}bg-amber-100 text-amber-800
-                                        {% else %}bg-emerald-100 text-emerald-800{% endif %}">
-                                        <i class="fa fa-circle mr-1.5 text-[8px] animate-pulse"></i>
-                                        {{ task[2].title() }} Priority
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                                        {{ task[3].replace('_', ' ').title() }}
-                                    </span>
-                                </div>
-                                
-                                <!-- Task content -->
-                                <div class="text-sm text-gray-800 mb-4 max-h-48 overflow-y-auto pr-1 border-b border-gray-100 pb-3 whitespace-pre-line" style="scrollbar-width: thin;">
-                                    {{ task[1]|safe }}
-                                </div>
-                            </div>
-                            
-                            <div class="mt-auto">
-                                <div class="text-xs text-gray-500 space-y-1.5 mb-4">
-                                    <p class="flex items-center"><i class="fa fa-folder w-4 mr-2 text-indigo-500"></i><strong>Project:</strong> <span class="text-gray-700 ml-1 truncate">{{ task[6] }}</span></p>
-                                    <p class="flex items-center"><i class="fa fa-calendar w-4 mr-2 text-indigo-500"></i><strong>Dates:</strong> <span class="text-gray-700 ml-1">{{ task[4] if task[4] else 'Not Set' }} - {{ task[5] if task[5] else 'Ongoing' }}</span></p>
-                                </div>
-                                <a href="{{ url_for('tasks.view_task_details', task_id=task[0]) }}"
-                                   class="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-lg transition-colors duration-150">
-                                   <i class="fa fa-eye"></i> View Updates
-                                </a>
-                            </div>
-                        </div>
+
+                    <!-- Show RESOLVED issues -->
+                    {% set resolved_issues = (resolved_issues_by_asset.get(cur_asset_id) or
+                    resolved_issues_by_asset.get(cur_asset_id|string) or resolved_issues_by_asset.get(cur_asset_id|int)
+                    or []) if resolved_issues_by_asset and resolved_issues_by_asset.get is defined else
+                    (resolved_issues_by_asset[cur_asset_id] if resolved_issues_by_asset and cur_asset_id in
+                    resolved_issues_by_asset else []) %}
+                    {% if resolved_issues %}
+                    <tr class="bg-gray-50 text-sm text-gray-700">
+                        <td colspan="6" class="p-2 pl-6">
+                            <strong>Resolved Issues:</strong>
+                            <ul class="list-disc ml-4 mt-1 space-y-1">
+                                {% for issue in resolved_issues %}
+                                {% set issue_text = issue['IssueText'] if 'IssueText' in issue else (issue['issuetext']
+                                if 'issuetext' in issue else (issue.IssueText if issue.IssueText is defined else
+                                (issue.issuetext if issue.issuetext is defined else '-'))) %}
+                                {% set res_comment = issue['ResolvedComment'] if 'ResolvedComment' in issue else
+                                (issue['resolvedcomment'] if 'resolvedcomment' in issue else (issue.ResolvedComment if
+                                issue.ResolvedComment is defined else (issue.resolvedcomment if issue.resolvedcomment is
+                                defined else '-'))) %}
+                                {% set res_date = issue['ResolvedDate'] if 'ResolvedDate' in issue else
+                                (issue['resolveddate'] if 'resolveddate' in issue else (issue.ResolvedDate if
+                                issue.ResolvedDate is defined else (issue.resolveddate if issue.resolveddate is defined
+                                else '-'))) %}
+                                <li>
+                                    "{{ issue_text }}"
+                                    → <em class="text-green-600">{{ res_comment }}</em>
+                                    <span class="text-xs text-gray-600">({{ res_date }})</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endif %}
                     {% endfor %}
-                </div>
-                {% else %}
-                    <p class="text-gray-500 text-sm">No previous tasks found.</p>
-                {% endif %}
-            {% else %}
-                <p class="text-gray-500 text-sm">No previous tasks assigned.</p>
-            {% endif %}
+                </tbody>
+            </table>
         </div>
+        {% else %}
+        <p class="text-gray-600">No allocated assets found.</p>
+        {% endif %}
     </div>
 </div>
+
+<!-- Modal -->
+<div id="issueModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded shadow-lg w-full max-w-md p-6">
+        <h3 class="text-xl font-semibold mb-4">Report Asset Issue</h3>
+        <form method="POST" id="issueForm">
+            <input type="hidden" name="asset_id" id="modalAssetId">
+            <textarea name="issue_text" rows="4" required class="w-full border border-gray-300 rounded p-2 mb-4"
+                placeholder="Describe the issue..."></textarea>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal()"
+                    class="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openModal(assetId) {
+        const modal = document.getElementById('issueModal');
+        const form = document.getElementById('issueForm');
+        document.getElementById('modalAssetId').value = assetId;
+        form.action = '/employee/report_issue/' + assetId;
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('issueModal').classList.add('hidden');
+    }
+</script>
 {% endblock %}

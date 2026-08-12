@@ -1,92 +1,96 @@
 {% extends "layouts/base.html" %}
+
 {% block title %}Quick Delete - Admin Panel{% endblock %}
 
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto mt-8 bg-white shadow rounded-lg p-6">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="mb-4">
-          {% for category, message in messages %}
-            <div class="px-4 py-2 rounded text-white
+<div class="w-full px-1">
+  <div class="bg-white shadow rounded-lg border border-gray-200 p-6 sm:p-8">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-4">
+      {% for category, message in messages %}
+      <div class="px-4 py-2 rounded text-white
                         {{ 'bg-green-600' if category == 'success' else 'bg-red-600' }}">
-              {{ message }}
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-  <h1 class="text-2xl font-semibold mb-4 text-center text-gray-800">Quick Delete Tool</h1>
-
-  <form method="get" action="{{ url_for('employees.admin_quick_delete') }}" class="mb-6">
-    <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Select Category</label>
-    <div class="flex gap-4 items-center">
-      <select name="category" id="category" onchange="this.form.submit()"
-              class="border border-gray-300 rounded px-3 py-2 w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <option value="">-- Select --</option>
-        <option value="employee" {% if category == 'employee' %}selected{% endif %}>Employee</option>
-        <option value="task" {% if category == 'task' %}selected{% endif %}>Task</option>
-        <option value="leave_type" {% if category == 'leave_type' %}selected{% endif %}>Leave Type</option>
-        <option value="expense_type" {% if category == 'expense_type' %}selected{% endif %}>Expense Type</option>
-      </select>
+        {{ message }}
+      </div>
+      {% endfor %}
     </div>
-  </form>
+    {% endif %}
+    {% endwith %}
+    <h1 class="text-2xl font-semibold mb-4 text-center text-gray-800">Quick Delete Tool</h1>
 
-  {% if data %}
-  <form method="post" action="{{ url_for('employees.delete_all_category', category=category) }}"
-      onsubmit="return confirm('Are you sure you want to delete ALL {{ category.replace('_', ' ') }}s?')">
-    <button type="submit"
-            class="mt-4 inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-        Delete All {{ category.replace('_', ' ').title() }}s
-    </button>
+    <form method="get" action="{{ url_for('employees.admin_quick_delete') }}" class="mb-6">
+      <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Select Category</label>
+      <div class="flex gap-4 items-center">
+        <select name="category" id="category" onchange="this.form.submit()"
+          class="border border-gray-300 rounded px-3 py-2 w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">-- Select --</option>
+          <option value="employee" {% if category=='employee' %}selected{% endif %}>Employee</option>
+          <option value="task" {% if category=='task' %}selected{% endif %}>Task</option>
+          <option value="leave_type" {% if category=='leave_type' %}selected{% endif %}>Leave Type</option>
+          <option value="expense_type" {% if category=='expense_type' %}selected{% endif %}>Expense Type</option>
+        </select>
+      </div>
     </form>
-  <div class="overflow-x-auto border rounded">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Name/Description</th>
-          <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Action</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-100">
-        {% for item in data %}
-        <tr>
-          <td class="px-4 py-2 text-gray-800">
-            {% if category == 'employee' %}
+
+    {% if data %}
+    <form method="post" action="{{ url_for('employees.delete_all_category', category=category) }}"
+      onsubmit="return confirm(`Are you sure you want to delete ALL {{ category.replace('_', ' ') }}s?`)">
+      <button type="submit" class="mt-4 inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+        Delete All {{ category.replace('_', ' ').title() }}s
+      </button>
+    </form>
+    <div class="overflow-x-auto border rounded">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Name/Description</th>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Action</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
+          {% for item in data %}
+          <tr>
+            <td class="px-4 py-2 text-gray-800">
+              {% if category == 'employee' %}
               {{ item[1] }} {{ item[2] }}
-            {% elif category == 'task' %}
+              {% elif category == 'task' %}
               {{ item[1] }}
-            {% elif category == 'leave_type' %}
+              {% elif category == 'leave_type' %}
               {{ item[1] }}
-            {% elif category == 'expense_type' %}
+              {% elif category == 'expense_type' %}
               {{ item[1] }}
-            {% endif %}
-          </td>
-          <td class="px-4 py-2">
-            {% if category == 'employee' %}
+              {% endif %}
+            </td>
+            <td class="px-4 py-2">
+              {% if category == 'employee' %}
               <a href="{{ url_for('employees.delete_employee', emp_id=item[0]) }}"
-                 onclick="return confirm('Delete this employee?')"
-                 class="text-red-600 hover:text-red-800 font-medium">Delete</a>
-            {% elif category == 'task' %}
+                onclick="return confirm('Delete this employee?')"
+                class="text-red-600 hover:text-red-800 font-medium">Delete</a>
+              {% elif category == 'task' %}
               <a href="{{ url_for('tasks.delete_task', task_id=item[0]) }}"
-                 onclick="return confirm('Delete this task?')"
-                 class="text-red-600 hover:text-red-800 font-medium">Delete</a>
-            {% elif category == 'leave_type' %}
+                onclick="return confirm('Delete this task?')"
+                class="text-red-600 hover:text-red-800 font-medium">Delete</a>
+              {% elif category == 'leave_type' %}
               <a href="{{ url_for('leave.delete_leave_type', lt_id=item[0]) }}"
-                 onclick="return confirm('Delete this leave type?')"
-                 class="text-red-600 hover:text-red-800 font-medium">Delete</a>
-            {% elif category == 'expense_type' %}
+                onclick="return confirm('Delete this leave type?')"
+                class="text-red-600 hover:text-red-800 font-medium">Delete</a>
+              {% elif category == 'expense_type' %}
               <a href="{{ url_for('expenses.delete_expense_type', et_id=item[0]) }}"
-                 onclick="return confirm('Delete this expense type?')"
-                 class="text-red-600 hover:text-red-800 font-medium">Delete</a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% elif category %}
+                onclick="return confirm('Delete this expense type?')"
+                class="text-red-600 hover:text-red-800 font-medium">Delete</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% elif category %}
     <p class="text-gray-500 mt-6">No records found for <strong>{{ category.replace('_', ' ').title() }}</strong>.</p>
-  {% endif %}
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

@@ -1,5 +1,9 @@
 {% extends "layouts/base.html" %}
+
 {% block title %}View Jobs - Careers{% endblock %}
+
+{% block main_class %}p-3 w-full{% endblock %}
+
 {% block content %}
 <div class="w-full px-1">
       {% with messages = get_flashed_messages(with_categories=true) %}
