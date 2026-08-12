@@ -496,6 +496,64 @@ class DatabaseBase:
             )
         ''')
 
+        # Create tbl_work_items
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_work_items (
+                work_item_id SERIAL PRIMARY KEY,
+                work_id VARCHAR(50) UNIQUE NOT NULL,
+                project_id INTEGER NOT NULL,
+                employee_id INTEGER NOT NULL,
+                work_title VARCHAR(255) NOT NULL,
+                description TEXT,
+                technical_description TEXT,
+                estimated_hours NUMERIC(5, 2) DEFAULT 0.00,
+                created_by INTEGER NOT NULL,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR(50) DEFAULT 'New' CHECK (status IN ('New', 'Active', 'Testing', 'UAT', 'Resolved')),
+                FOREIGN KEY (project_id) REFERENCES tbl_project(project_id) ON DELETE CASCADE,
+                FOREIGN KEY (employee_id) REFERENCES tbl_employee(emp_id) ON DELETE RESTRICT,
+                FOREIGN KEY (created_by) REFERENCES tbl_employee(emp_id) ON DELETE RESTRICT
+            )
+        ''')
+
+        # Create tbl_work_details
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_work_details (
+                work_item_details_id SERIAL PRIMARY KEY,
+                work_item_id INTEGER NOT NULL,
+                created_by INTEGER NOT NULL,
+                description TEXT NOT NULL,
+                created_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (work_item_id) REFERENCES tbl_work_items(work_item_id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES tbl_employee(emp_id) ON DELETE RESTRICT
+            )
+        ''')
+
+        # Create tbl_work_qa
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_work_qa (
+                qa_id SERIAL PRIMARY KEY,
+                work_item_id INTEGER NOT NULL,
+                employee_id INTEGER NOT NULL,
+                created_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (work_item_id) REFERENCES tbl_work_items(work_item_id) ON DELETE CASCADE,
+                FOREIGN KEY (employee_id) REFERENCES tbl_employee(emp_id) ON DELETE RESTRICT
+            )
+        ''')
+
+        # Create tbl_work_qa_details
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tbl_work_qa_details (
+                qa_details_id SERIAL PRIMARY KEY,
+                qa_id INTEGER NOT NULL,
+                status VARCHAR(50) NOT NULL CHECK (status IN ('Testing', 'UAT', 'Resolved')),
+                result VARCHAR(10) NOT NULL CHECK (result IN ('PASS', 'FAIL')),
+                description TEXT NOT NULL,
+                created_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (qa_id) REFERENCES tbl_work_qa(qa_id) ON DELETE CASCADE
+            )
+        ''')
+
         conn.commit()
         conn.close()
 
